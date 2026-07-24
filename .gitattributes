@@ -1,3 +1,4 @@
 *.f32 binary
 *.onnx binary
 *.pt binary
+*.part-* binary

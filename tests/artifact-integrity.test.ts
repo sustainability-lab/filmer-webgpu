@@ -112,3 +112,38 @@ describe("published static geography", () => {
     }
   });
 });
+
+describe("browser model artifacts", () => {
+  const modelDirectory = resolve("public/models");
+  const manifest = JSON.parse(
+    readFileSync(resolve(modelDirectory, "manifest.json"), "utf8"),
+  ) as {
+    artifacts: Record<
+      string,
+      {
+        bytes: number;
+        sha256: string;
+        parts: Array<{ file: string; bytes: number; sha256: string }>;
+      }
+    >;
+  };
+
+  it("reassembles each same-origin model to the release checksum", () => {
+    for (const [runtime, artifact] of Object.entries(manifest.artifacts)) {
+      const hash = createHash("sha256");
+      let totalBytes = 0;
+      for (const part of artifact.parts) {
+        const source = readFileSync(resolve(modelDirectory, part.file));
+        expect(source.byteLength, part.file).toBe(part.bytes);
+        expect(
+          createHash("sha256").update(source).digest("hex"),
+          part.file,
+        ).toBe(part.sha256);
+        hash.update(source);
+        totalBytes += source.byteLength;
+      }
+      expect(totalBytes, runtime).toBe(artifact.bytes);
+      expect(hash.digest("hex"), runtime).toBe(artifact.sha256);
+    }
+  });
+});

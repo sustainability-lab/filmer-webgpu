@@ -10,6 +10,11 @@ export type Backend = "webgpu" | "wasm";
 export type Artifact = {
   file: string;
   url: string;
+  parts?: Array<{
+    file: string;
+    bytes: number;
+    sha256: string;
+  }>;
   bytes: number;
   sha256: string;
   precision: "fp16" | "fp32";
@@ -48,31 +53,64 @@ async function verifiedDownload(
   artifact: Artifact,
   onProgress: (progress: LoadProgress) => void,
 ): Promise<ArrayBuffer> {
-  const response = await fetch(artifact.url, { cache: "force-cache" });
-  if (!response.ok) {
-    throw new Error(`Model fetch failed with HTTP ${response.status}`);
-  }
-  const total = Number(response.headers.get("content-length")) || artifact.bytes;
-  const reader = response.body?.getReader();
-  if (!reader) {
-    throw new Error("Streaming downloads are unavailable in this browser");
-  }
   const chunks: Uint8Array[] = [];
   let loaded = 0;
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
-    loaded += value.byteLength;
-    onProgress({ loaded, total, stage: "download" });
+  const sources = artifact.parts?.length
+    ? artifact.parts.map((part) => ({
+        ...part,
+        url: `${import.meta.env.BASE_URL}models/${part.file}`,
+      }))
+    : [{ file: artifact.file, bytes: artifact.bytes, url: artifact.url }];
+  for (const source of sources) {
+    const response = await fetch(source.url, { cache: "force-cache" });
+    if (!response.ok) {
+      throw new Error(
+        `Model part ${source.file} failed with HTTP ${response.status}`,
+      );
+    }
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error("Streaming downloads are unavailable in this browser");
+    }
+    const partChunks: Uint8Array[] = [];
+    let partLoaded = 0;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      partChunks.push(value);
+      loaded += value.byteLength;
+      partLoaded += value.byteLength;
+      onProgress({ loaded, total: artifact.bytes, stage: "download" });
+    }
+    if (partLoaded !== source.bytes) {
+      throw new Error(
+        `Model part ${source.file} has ${partLoaded} bytes; expected ${source.bytes}`,
+      );
+    }
+    const part = new Uint8Array(partLoaded);
+    let partCursor = 0;
+    partChunks.forEach((chunk) => {
+      part.set(chunk, partCursor);
+      partCursor += chunk.byteLength;
+    });
+    const partSha = bytesToHex(await crypto.subtle.digest("SHA-256", part));
+    if ("sha256" in source && partSha !== source.sha256) {
+      throw new Error(`Model part checksum mismatch for ${source.file}`);
+    }
   }
-  const model = new Uint8Array(loaded);
+  if (loaded !== artifact.bytes) {
+    throw new Error(
+      `Model download has ${loaded} bytes; expected ${artifact.bytes}`,
+    );
+  }
+  const model = new Uint8Array(artifact.bytes);
   let cursor = 0;
   chunks.forEach((chunk) => {
     model.set(chunk, cursor);
     cursor += chunk.byteLength;
   });
-  onProgress({ loaded, total, stage: "checksum" });
+  onProgress({ loaded, total: artifact.bytes, stage: "checksum" });
   const actual = bytesToHex(await crypto.subtle.digest("SHA-256", model));
   if (actual !== artifact.sha256) {
     throw new Error(

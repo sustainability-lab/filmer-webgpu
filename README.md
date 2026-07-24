@@ -134,8 +134,9 @@ npm run build
 ```
 
 The app is static; GitHub Pages deployment is in
-`.github/workflows/pages.yml`. Model files are release assets rather than Git
-blobs.
+`.github/workflows/pages.yml`. The tagged release retains the original ONNX
+files. Pages serves checksum-pinned parts from the same origin because GitHub
+Release redirects do not expose CORS headers to browser JavaScript.
 
 ## Output
 

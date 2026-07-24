@@ -5,6 +5,13 @@
     "webgpu": {
       "file": "filmer_v1_variant_b_fp16.onnx",
       "url": "https://github.com/sustainability-lab/filmer-webgpu/releases/download/v0.1.0-model/filmer_v1_variant_b_fp16.onnx",
+      "parts": [
+        {
+          "file": "filmer_v1_variant_b_fp16.onnx.part-00",
+          "bytes": 79587004,
+          "sha256": "163c94f72b23d9613fa1b2d958979663d569fea90f387e1b1f9d68181891af7a"
+        }
+      ],
       "bytes": 79587004,
       "sha256": "163c94f72b23d9613fa1b2d958979663d569fea90f387e1b1f9d68181891af7a",
       "precision": "fp16"
@@ -12,6 +19,18 @@
     "wasm": {
       "file": "filmer_v1_variant_b_fp32.onnx",
       "url": "https://github.com/sustainability-lab/filmer-webgpu/releases/download/v0.1.0-model/filmer_v1_variant_b_fp32.onnx",
+      "parts": [
+        {
+          "file": "filmer_v1_variant_b_fp32.onnx.part-00",
+          "bytes": 80000000,
+          "sha256": "0593f5c9689ce37f88c7670031169433e128871dc598e185f8ac7f20bdda4754"
+        },
+        {
+          "file": "filmer_v1_variant_b_fp32.onnx.part-01",
+          "bytes": 79065799,
+          "sha256": "016c03ae310a521f742f9bf13fba0b85ca61a6077ed06eb0c9e1d0229b0792c0"
+        }
+      ],
       "bytes": 159065799,
       "sha256": "19abe68725be837f912b832dc9d3748982fc03f644bc334ce4b96e63e628cdbc",
       "precision": "fp32"
