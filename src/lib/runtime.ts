@@ -213,7 +213,10 @@ export class FilmerSession {
 }
 
 export async function loadModelManifest(): Promise<ModelManifest> {
-  const response = await fetch(`${import.meta.env.BASE_URL}models/manifest.json`);
+  const response = await fetch(
+    `${import.meta.env.BASE_URL}models/manifest.json?v=2`,
+    { cache: "no-cache" },
+  );
   if (!response.ok) {
     throw new Error(`Model manifest fetch failed with HTTP ${response.status}`);
   }
