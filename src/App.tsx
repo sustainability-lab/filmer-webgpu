@@ -555,8 +555,13 @@ export default function App() {
     : sequenceBundle
       ? 100
       : 0;
+  const plannedOutputSteps = stepDetails.length || requirements.outputSteps;
+  const completedOutputSteps = Math.max(
+    sequenceProgress,
+    stepDetails.filter((step) => step.status === "complete").length,
+  );
   const inferenceStagePercent =
-    (sequenceProgress / Math.max(1, requirements.outputSteps)) * 100;
+    (completedOutputSteps / Math.max(1, plannedOutputSteps)) * 100;
   const fieldSummary = useMemo(() => {
     if (!field) return null;
     const start = variableIndex * 99 * 99;
@@ -695,9 +700,10 @@ export default function App() {
           <span>execution</span>
           <strong>{runtimeBackend?.toUpperCase() ?? "not loaded"}</strong>
           <small>
+            {runtimeState}
             {stepMilliseconds
-              ? `${stepMilliseconds.toFixed(1)} ms latest mean`
-              : runtimeState}
+              ? ` · ${stepMilliseconds.toFixed(1)} ms latest mean`
+              : ""}
           </small>
         </div>
       </section>
@@ -849,6 +855,25 @@ export default function App() {
                 onChange={(event) => setHorizon(Number(event.target.value))}
               />
             </div>
+            <div
+              aria-label="Lead-time presets"
+              className="mt-3 grid grid-cols-4 gap-1"
+            >
+              {[3, 24, 48, 96].map((hours) => (
+                <button
+                  className={`border px-2 py-2 font-mono text-[10px] transition-colors ${
+                    horizon === hours
+                      ? "border-[#a6552c] bg-[#ebe2d8] text-[#7f3d20]"
+                      : "border-stone-400/40 text-stone-600 hover:bg-white/30"
+                  }`}
+                  key={hours}
+                  onClick={() => setHorizon(hours)}
+                  type="button"
+                >
+                  +{hours} h
+                </button>
+              ))}
+            </div>
             <div className="mt-5 grid grid-cols-2 border-y border-stone-400/40 py-4">
               <div>
                 <p className="metric">{requirements.outputSteps}</p>
@@ -862,9 +887,10 @@ export default function App() {
             <div className="mt-4 flex items-start gap-3 text-xs leading-relaxed text-stone-600">
               <Warning className="mt-0.5 shrink-0 text-[#a6552c]" size={16} />
               <p>
-                A 96-hour request needs GFS at leads −3 through +93 h. FiLMeR
-                outputs cannot be fed back as GFS state, so this is conditional
-                downscaling, not a standalone autoregressive forecast.
+                A {horizon}-hour request needs GFS at leads −3 through +
+                {requirements.lastGfsLeadHours} h. FiLMeR outputs cannot be fed
+                back as GFS state, so this is conditional downscaling, not a
+                standalone autoregressive forecast.
               </p>
             </div>
             <div className="mt-5 border-t border-stone-400/40 pt-5">
@@ -1155,7 +1181,7 @@ export default function App() {
               />
               <StageBar
                 label="FiLMeR outputs"
-                detail={`${sequenceProgress}/${requirements.outputSteps} conditional steps`}
+                detail={`${completedOutputSteps}/${plannedOutputSteps} conditional steps`}
                 percent={inferenceStagePercent}
                 state={
                   inferenceStagePercent >= 100
