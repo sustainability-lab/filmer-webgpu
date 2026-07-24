@@ -93,3 +93,8 @@ compression operates per global field. A long trajectory still transfers
 hundreds of MB. For production use, place a small regional subset/cache service
 in front of NOAA; it should return the exact 20×127×137 float32 tensor plus
 source cycle, lead, object generation, record offsets, and checksums.
+
+NCEP currently uses GRIB2 Template 5.3 with one-, two-, and three-octet spatial
+differencing descriptors across these fields. `scripts/patch_grib_js.mjs`
+adds the missing 24-bit sign-magnitude read to `grib-js` during `npm install`;
+the decoder test and production live-GFS smoke run cover that path.

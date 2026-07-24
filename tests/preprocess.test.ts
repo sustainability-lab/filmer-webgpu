@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import BinaryDataView from "grib-js/lib/BinaryDataView";
 import {
   GRID_CELLS,
   normalizeGfsFrame,
@@ -113,6 +114,17 @@ describe("FiLMeR preprocessing", () => {
 });
 
 describe("operational GFS acquisition", () => {
+  it("decodes the 24-bit signed descriptors used by NCEP complex packing", () => {
+    const positive = new BinaryDataView(
+      Uint8Array.from([0x00, 0x00, 0x01]).buffer,
+    );
+    const negative = new BinaryDataView(
+      Uint8Array.from([0x80, 0x00, 0x01]).buffer,
+    );
+    expect(positive.read("grib24")).toBe(1);
+    expect(negative.read("grib24")).toBe(-1);
+  });
+
   it("builds the public GFS object name", () => {
     expect(gfsObjectName(new Date("2026-07-24T06:00:00Z"), 93)).toBe(
       "gfs.20260724/06/atmos/gfs.t06z.pgrb2.0p25.f093",
