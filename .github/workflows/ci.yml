@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check Python tools
+        run: python -m compileall -q scripts
+
+      - name: Validate committed manifests
+        run: |
+          python -m json.tool public/models/manifest.json >/dev/null
+          python -m json.tool public/data/static/manifest.json >/dev/null
+          python -m json.tool src/data/model-metadata.json >/dev/null

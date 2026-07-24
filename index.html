@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="FiLMeR regional weather downscaling in the browser with WebGPU and WebAssembly."
+    />
+    <meta name="theme-color" content="#f3f1ea" />
+    <title>FiLMeR WebGPU</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      function showFatalError(message) {
+        const root = document.getElementById("root");
+        if (!root || root.childElementCount) return;
+        const notice = document.createElement("div");
+        notice.style.cssText =
+          "margin:2rem;padding:1rem;border:1px solid #a6552c;font:14px system-ui;color:#7f3d20;background:#f3f1ea";
+        notice.textContent = `FiLMeR could not start: ${message}`;
+        root.appendChild(notice);
+      }
+      window.addEventListener("error", (event) =>
+        showFatalError(event.message || "browser runtime error"),
+      );
+      window.addEventListener("unhandledrejection", (event) =>
+        showFatalError(
+          event.reason instanceof Error
+            ? event.reason.message
+            : "unhandled browser promise rejection",
+        ),
+      );
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

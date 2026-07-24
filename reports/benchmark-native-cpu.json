@@ -1,0 +1,20 @@
+{
+  "runtime": "onnxruntime-python",
+  "provider": "CPUExecutionProvider",
+  "platform": "macOS-15.7.7-arm64-arm-64bit",
+  "python": "3.12.9",
+  "runs": 10,
+  "stepMilliseconds": {
+    "median": 86.31777102709748,
+    "mean": 86.86225430574268,
+    "min": 85.14895802363753,
+    "max": 90.53704200778157
+  },
+  "conditional96HourComputeSeconds": 2.7621686728671193,
+  "excludes": [
+    "model download",
+    "GFS retrieval",
+    "geogrid preparation",
+    "I/O"
+  ]
+}

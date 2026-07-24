@@ -1,0 +1,70 @@
+{
+  "kind": "numerical-parity-fixture-not-operational-forecast",
+  "forecastTime": "2025-01-01T06:00:00",
+  "domain": "d01",
+  "staticInput": "normalized-zero/mean placeholder",
+  "inputs": {
+    "input": {
+      "file": "fixture-input.f32",
+      "shape": [
+        1,
+        70,
+        127,
+        137
+      ]
+    },
+    "projection": {
+      "file": "fixture-projection.f32",
+      "shape": [
+        1,
+        16
+      ]
+    }
+  },
+  "outputs": {
+    "state": {
+      "file": "fixture-state.f32",
+      "shape": [
+        1,
+        5,
+        99,
+        99
+      ]
+    },
+    "occurrence": {
+      "file": "fixture-occurrence.f32",
+      "shape": [
+        1,
+        1,
+        99,
+        99
+      ]
+    },
+    "intensity": {
+      "file": "fixture-intensity.f32",
+      "shape": [
+        1,
+        1,
+        99,
+        99
+      ]
+    },
+    "physical": {
+      "file": "fixture-physical.f32",
+      "shape": [
+        1,
+        6,
+        99,
+        99
+      ]
+    }
+  },
+  "sha256": {
+    "input": "bf498564366a23833ccff9eb3941a3f7e067176decde0db1ea5fd55e5e2f4bb3",
+    "projection": "a78a4287af9ea63fb1e3e852f96fcc2d70edacf05e4eb8cb8e05002b5f0edfa1",
+    "state": "34825b8c64eba7e24881cee62e3f3a8a35d0ce65eadc8cf2b22539adb6ea92da",
+    "occurrence": "2170e22f55f519aaba41a734e98f34f0c47292732a5862fc37d3439618874171",
+    "intensity": "dfe8fe64d660b3705617f5e7b4d1d81ed336627e9e21d2297b52e9109b53bf35",
+    "physical": "633f0352c8ba4428f3920287cf21afb04e9455ea35b45b3f1649638401e58ad5"
+  }
+}

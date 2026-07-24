@@ -1,0 +1,32 @@
+{
+  "model": "artifacts/filmer_v1_variant_b_fp32.onnx",
+  "provider": "CPUExecutionProvider",
+  "outputs": {
+    "state": {
+      "maxAbs": 2.664327621459961e-05,
+      "meanAbs": 9.343997789591805e-07,
+      "rmse": 1.418532244579634e-06,
+      "maxRelative": 0.11694926061717954
+    },
+    "precip_occurrence": {
+      "maxAbs": 0.0006237030029296875,
+      "meanAbs": 2.677033180152136e-05,
+      "rmse": 3.869943130108692e-05,
+      "maxRelative": 0.1155307078375542
+    },
+    "precip_intensity": {
+      "maxAbs": 1.7762184143066406e-05,
+      "meanAbs": 6.366206297751943e-07,
+      "rmse": 1.3735544530155044e-06,
+      "maxRelative": 9.485160655857125e-05
+    }
+  },
+  "physicalUnits": {
+    "maxAbs": 0.0625,
+    "meanAbs": 0.0005669051382676303,
+    "rmse": 0.002335881935537665,
+    "maxRelative": 0.2698412698412698
+  },
+  "wetMaskDisagreements": 0,
+  "maxAbsAcrossOutputs": 0.0006237030029296875
+}

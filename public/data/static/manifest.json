@@ -1,0 +1,218 @@
+{
+  "schemaVersion": 1,
+  "kind": "filmer-static-geogrid",
+  "source": {
+    "wpsNamelist": "configs/namelist.wps",
+    "staticEncoderDomain": "d01",
+    "d01Sha256": "090e9033d24d7c96f050f505d1a38ebba872d52fb82bcade841665c9a6ff0918"
+  },
+  "normalization": "LANDMASK and LANDUSEF raw; channels 1:9 per-grid z-score; bilinear resize with align_corners=false",
+  "static": [
+    {
+      "file": "static-month-01.f32",
+      "bytes": 2087880,
+      "sha256": "6f8a1cab517586ff5136db3938fed1a3168ae6adb0a3f647d308aa8a4a49cae2",
+      "month": 1,
+      "shape": [
+        30,
+        127,
+        137
+      ]
+    },
+    {
+      "file": "static-month-02.f32",
+      "bytes": 2087880,
+      "sha256": "53d9b0cd41989cdd813df92edb5bd0b8c2731b182d99ae8749570a9305f511f7",
+      "month": 2,
+      "shape": [
+        30,
+        127,
+        137
+      ]
+    },
+    {
+      "file": "static-month-03.f32",
+      "bytes": 2087880,
+      "sha256": "c57c41eabcc696d329b16480b5cda6cff7763190bccef00b48103457a7430674",
+      "month": 3,
+      "shape": [
+        30,
+        127,
+        137
+      ]
+    },
+    {
+      "file": "static-month-04.f32",
+      "bytes": 2087880,
+      "sha256": "9f8556d4fe77b9f08a5f9ae088bdb19979179319ff03c2d6efb6101ca7f68a59",
+      "month": 4,
+      "shape": [
+        30,
+        127,
+        137
+      ]
+    },
+    {
+      "file": "static-month-05.f32",
+      "bytes": 2087880,
+      "sha256": "7c53eca03c7c303e26ed0f614b96327c4874a6419f301fb0cbf3129e10a10afc",
+      "month": 5,
+      "shape": [
+        30,
+        127,
+        137
+      ]
+    },
+    {
+      "file": "static-month-06.f32",
+      "bytes": 2087880,
+      "sha256": "d4f67b9de4242cbcdc91fbde67a2a99f9d5358bcaf2f42a8db999caa39b36551",
+      "month": 6,
+      "shape": [
+        30,
+        127,
+        137
+      ]
+    },
+    {
+      "file": "static-month-07.f32",
+      "bytes": 2087880,
+      "sha256": "62efceea0766ccb781394674f0d4778ab4bd9d033d51f6815da01ea67ecdc466",
+      "month": 7,
+      "shape": [
+        30,
+        127,
+        137
+      ]
+    },
+    {
+      "file": "static-month-08.f32",
+      "bytes": 2087880,
+      "sha256": "eafe6a1f8d698da23db911cfd12e23cd646baf4430b872e43fa66b8b3defbcb7",
+      "month": 8,
+      "shape": [
+        30,
+        127,
+        137
+      ]
+    },
+    {
+      "file": "static-month-09.f32",
+      "bytes": 2087880,
+      "sha256": "28814d98f06c64629a3dc4b96037088d69a3539b1ebaee77e0a21c6790b98577",
+      "month": 9,
+      "shape": [
+        30,
+        127,
+        137
+      ]
+    },
+    {
+      "file": "static-month-10.f32",
+      "bytes": 2087880,
+      "sha256": "e84ee3f4e7533880467e3612040384df6454331826d288a0364992baf32fe469",
+      "month": 10,
+      "shape": [
+        30,
+        127,
+        137
+      ]
+    },
+    {
+      "file": "static-month-11.f32",
+      "bytes": 2087880,
+      "sha256": "44facff4ba6327c04714d2a185cbda1fa48af8f78b2cd438793c143259343443",
+      "month": 11,
+      "shape": [
+        30,
+        127,
+        137
+      ]
+    },
+    {
+      "file": "static-month-12.f32",
+      "bytes": 2087880,
+      "sha256": "931127f3e5677d325756041293ffb4dc4d4ba6761405fac7565090b18cd3c34f",
+      "month": 12,
+      "shape": [
+        30,
+        127,
+        137
+      ]
+    }
+  ],
+  "grids": [
+    {
+      "domainId": 1,
+      "shape": [
+        99,
+        99
+      ],
+      "latitude": {
+        "file": "grid-d01-latitude.f32",
+        "bytes": 39204,
+        "sha256": "1a134d1f1a09cbb410f6550cdaad77fd0a6f1aa0fbae55e68fbb671ad9fb6618"
+      },
+      "longitude": {
+        "file": "grid-d01-longitude.f32",
+        "bytes": 39204,
+        "sha256": "35db9b1c087c3aea8db86c52f23438284714fd5522fbf6bd8bf0029705b86ae4"
+      },
+      "sourceSha256": "090e9033d24d7c96f050f505d1a38ebba872d52fb82bcade841665c9a6ff0918"
+    },
+    {
+      "domainId": 2,
+      "shape": [
+        99,
+        99
+      ],
+      "latitude": {
+        "file": "grid-d02-latitude.f32",
+        "bytes": 39204,
+        "sha256": "84e87dcb4d72747cd6c1d964ec6b73af0ca6a33ab7f4094f62771ba67e309d99"
+      },
+      "longitude": {
+        "file": "grid-d02-longitude.f32",
+        "bytes": 39204,
+        "sha256": "03f7b661e2a2e6b238a935c5a5b8e289cf9c6d50fd6c2d9f9dc5f25b3614c8a5"
+      },
+      "sourceSha256": "0854b1d80579c197da65aec6af84b41b9da49477f9b79aad8570df802c12c734"
+    },
+    {
+      "domainId": 3,
+      "shape": [
+        99,
+        99
+      ],
+      "latitude": {
+        "file": "grid-d03-latitude.f32",
+        "bytes": 39204,
+        "sha256": "17defa13bc95fc816318582541b4595ce75665602d02ef5331da0f309ab58b9e"
+      },
+      "longitude": {
+        "file": "grid-d03-longitude.f32",
+        "bytes": 39204,
+        "sha256": "c0def67bbd914c94be30df045680eca51424fd9989ca0d85320ab52a10e11732"
+      },
+      "sourceSha256": "4294f40ff992b214370b63776f92e8e1c7e9c83606d96f3fd174a2d58b134049"
+    },
+    {
+      "domainId": 4,
+      "shape": [
+        99,
+        99
+      ],
+      "latitude": {
+        "file": "grid-d04-latitude.f32",
+        "bytes": 39204,
+        "sha256": "cfe8e39ffb8561d745b8fcef9630c974187c17328ecce39bb845f8b7910e74dd"
+      },
+      "longitude": {
+        "file": "grid-d04-longitude.f32",
+        "bytes": 39204,
+        "sha256": "f500996237840c5d56b90cd0507644addfd71579f3336478a493e27eec7754b6"
+      },
+      "sourceSha256": "9eaa48c20e050289d6e610aaa3994c76076aa6e4a53436e0d12e58e143a70dea"
+    }
+  ]
+}
