@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { reconstructPhysical } from "../src/lib/preprocess";
+import { verificationMetrics } from "../src/lib/verification";
 
 const dataDirectory = resolve("public/data");
 
@@ -145,5 +146,64 @@ describe("browser model artifacts", () => {
       expect(totalBytes, runtime).toBe(artifact.bytes);
       expect(hash.digest("hex"), runtime).toBe(artifact.sha256);
     }
+  });
+});
+
+describe("held-out WRF verification fixture", () => {
+  const validationDirectory = resolve(dataDirectory, "validation");
+  const manifest = JSON.parse(
+    readFileSync(resolve(validationDirectory, "manifest.json"), "utf8"),
+  ) as {
+    kind: string;
+    domain: string;
+    gridShape: number[];
+    variables: Array<{ name: string; unit: string }>;
+    artifacts: Record<
+      string,
+      { file: string; bytes: number; sha256: string; shape: number[] }
+    >;
+    metrics: Array<{ variable: string; bias: number; mae: number; rmse: number }>;
+  };
+
+  function validationF32(file: string) {
+    const source = readFileSync(resolve(validationDirectory, file));
+    const copy = source.buffer.slice(
+      source.byteOffset,
+      source.byteOffset + source.byteLength,
+    );
+    return new Float32Array(copy);
+  }
+
+  it("publishes hash-verified input, target, and Python prediction tensors", () => {
+    expect(manifest.kind).toBe("held-out-wrf-reference-not-observations");
+    expect(manifest.domain).toBe("d01");
+    expect(manifest.gridShape).toEqual([99, 99]);
+    for (const artifact of Object.values(manifest.artifacts)) {
+      const source = readFileSync(resolve(validationDirectory, artifact.file));
+      expect(source.byteLength, artifact.file).toBe(artifact.bytes);
+      expect(
+        createHash("sha256").update(source).digest("hex"),
+        artifact.file,
+      ).toBe(artifact.sha256);
+      expect(source.byteLength, artifact.file).toBe(
+        artifact.shape.reduce((product, dimension) => product * dimension, 1) *
+          4,
+      );
+    }
+  });
+
+  it("recomputes every published Python-vs-WRF metric", () => {
+    const actual = verificationMetrics(
+      validationF32(manifest.artifacts.pythonPrediction.file),
+      validationF32(manifest.artifacts.target.file),
+      manifest.variables,
+    );
+    expect(actual).toHaveLength(6);
+    actual.forEach((metric, index) => {
+      expect(metric.variable).toBe(manifest.metrics[index].variable);
+      expect(metric.bias).toBeCloseTo(manifest.metrics[index].bias, 7);
+      expect(metric.mae).toBeCloseTo(manifest.metrics[index].mae, 7);
+      expect(metric.rmse).toBeCloseTo(manifest.metrics[index].rmse, 7);
+    });
   });
 });

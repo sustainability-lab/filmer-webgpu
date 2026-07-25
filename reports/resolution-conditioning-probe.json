@@ -1,0 +1,429 @@
+{
+  "kind": "out-of-distribution-resolution-conditioning-sensitivity",
+  "validatedResolutionKm": 27,
+  "fixedInputShape": [
+    1,
+    70,
+    127,
+    137
+  ],
+  "fixedOutputShape": [
+    6,
+    99,
+    99
+  ],
+  "fixedDomain": "d01",
+  "warning": "Only the projection resolution scalar changes. Non-27 km cases are not forecasts at those resolutions and are compared with a 27 km WRF target solely to expose model sensitivity.",
+  "cases": [
+    {
+      "conditioningResolutionKm": 1,
+      "normalizedResolutionCoordinate": -1.6037163734436035,
+      "outputShape": [
+        6,
+        99,
+        99
+      ],
+      "metricsAgainst27KmWrfTarget": [
+        {
+          "variable": "T2",
+          "unit": "K",
+          "bias": -4.786652685561821,
+          "mae": 4.85326690720534,
+          "rmse": 6.021878783569321,
+          "targetMin": 251.93701171875,
+          "targetMax": 307.2831726074219,
+          "predictionMin": 242.71054077148438,
+          "predictionMax": 301.0882568359375
+        },
+        {
+          "variable": "U10",
+          "unit": "m s-1",
+          "bias": -0.530263192447201,
+          "mae": 1.8524024125942646,
+          "rmse": 2.664429907631313,
+          "targetMin": -10.078556060791016,
+          "targetMax": 18.683300018310547,
+          "predictionMin": -8.974470138549805,
+          "predictionMax": 12.365946769714355
+        },
+        {
+          "variable": "V10",
+          "unit": "m s-1",
+          "bias": 0.30205617592608175,
+          "mae": 1.5549495956366,
+          "rmse": 1.982836577887579,
+          "targetMin": -11.322521209716797,
+          "targetMax": 9.082086563110352,
+          "predictionMin": -9.605058670043945,
+          "predictionMax": 7.971534729003906
+        },
+        {
+          "variable": "Q2",
+          "unit": "kg kg-1",
+          "bias": -0.0006021592842801529,
+          "mae": 0.0011344524713441404,
+          "rmse": 0.0015984577888218917,
+          "targetMin": 0.00027729987050406635,
+          "targetMax": 0.019798539578914642,
+          "predictionMin": -0.0015840604901313782,
+          "predictionMax": 0.018857110291719437
+        },
+        {
+          "variable": "PSFC",
+          "unit": "Pa",
+          "bias": 18.94361026617182,
+          "mae": 144.72728348829202,
+          "rmse": 183.3896224547154,
+          "targetMin": 48770.96875,
+          "targetMax": 101957.2265625,
+          "predictionMin": 49306.63671875,
+          "predictionMax": 101859.546875
+        },
+        {
+          "variable": "PRECIP",
+          "unit": "mm",
+          "bias": 0.02793223399017801,
+          "mae": 0.2834649224782189,
+          "rmse": 1.2118433472201626,
+          "targetMin": -5.5080655592121275e-09,
+          "targetMax": 26.2149658203125,
+          "predictionMin": 0.0,
+          "predictionMax": 15.033345222473145
+        }
+      ],
+      "differenceFrom27KmPrediction": {
+        "maeAllValues": 12.994191668012904,
+        "rmseAllValues": 40.14086617614828,
+        "maxAbsoluteAllValues": 521.7265625
+      }
+    },
+    {
+      "conditioningResolutionKm": 3,
+      "normalizedResolutionCoordinate": -1.3471218347549438,
+      "outputShape": [
+        6,
+        99,
+        99
+      ],
+      "metricsAgainst27KmWrfTarget": [
+        {
+          "variable": "T2",
+          "unit": "K",
+          "bias": -4.754450056677192,
+          "mae": 4.8180016847596265,
+          "rmse": 5.988438481986598,
+          "targetMin": 251.93701171875,
+          "targetMax": 307.2831726074219,
+          "predictionMin": 242.79908752441406,
+          "predictionMax": 301.0532531738281
+        },
+        {
+          "variable": "U10",
+          "unit": "m s-1",
+          "bias": -0.5228865414780135,
+          "mae": 1.8435709890866019,
+          "rmse": 2.6483453134786834,
+          "targetMin": -10.078556060791016,
+          "targetMax": 18.683300018310547,
+          "predictionMin": -9.060808181762695,
+          "predictionMax": 12.410075187683105
+        },
+        {
+          "variable": "V10",
+          "unit": "m s-1",
+          "bias": 0.30912011347694945,
+          "mae": 1.5498435305750116,
+          "rmse": 1.9743987308483222,
+          "targetMin": -11.322521209716797,
+          "targetMax": 9.082086563110352,
+          "predictionMin": -9.649959564208984,
+          "predictionMax": 7.933612823486328
+        },
+        {
+          "variable": "Q2",
+          "unit": "kg kg-1",
+          "bias": -0.0006104949242569853,
+          "mae": 0.001138613903610426,
+          "rmse": 0.0016008022541125113,
+          "targetMin": 0.00027729987050406635,
+          "targetMax": 0.019798539578914642,
+          "predictionMin": -0.0015642223879694939,
+          "predictionMax": 0.018841836601495743
+        },
+        {
+          "variable": "PSFC",
+          "unit": "Pa",
+          "bias": 21.588572355499437,
+          "mae": 143.2520593402459,
+          "rmse": 181.81277230575918,
+          "targetMin": 48770.96875,
+          "targetMax": 101957.2265625,
+          "predictionMin": 49279.9609375,
+          "predictionMax": 101868.1171875
+        },
+        {
+          "variable": "PRECIP",
+          "unit": "mm",
+          "bias": 0.028442025769308585,
+          "mae": 0.28405655700957194,
+          "rmse": 1.2141266722717416,
+          "targetMin": -5.5080655592121275e-09,
+          "targetMax": 26.2149658203125,
+          "predictionMin": 0.0,
+          "predictionMax": 15.005993843078613
+        }
+      ],
+      "differenceFrom27KmPrediction": {
+        "maeAllValues": 13.085998873371954,
+        "rmseAllValues": 40.07618363236483,
+        "maxAbsoluteAllValues": 500.9765625
+      }
+    },
+    {
+      "conditioningResolutionKm": 9,
+      "normalizedResolutionCoordinate": -0.577337920665741,
+      "outputShape": [
+        6,
+        99,
+        99
+      ],
+      "metricsAgainst27KmWrfTarget": [
+        {
+          "variable": "T2",
+          "unit": "K",
+          "bias": -4.3782791761996345,
+          "mae": 4.433676249590982,
+          "rmse": 5.515050159593523,
+          "targetMin": 251.93701171875,
+          "targetMax": 307.2831726074219,
+          "predictionMin": 243.413818359375,
+          "predictionMax": 301.6936340332031
+        },
+        {
+          "variable": "U10",
+          "unit": "m s-1",
+          "bias": -0.4833131233618308,
+          "mae": 1.7769644762648633,
+          "rmse": 2.552790736699297,
+          "targetMin": -10.078556060791016,
+          "targetMax": 18.683300018310547,
+          "predictionMin": -9.217000961303711,
+          "predictionMax": 12.757835388183594
+        },
+        {
+          "variable": "V10",
+          "unit": "m s-1",
+          "bias": 0.328846150112067,
+          "mae": 1.5018283686109184,
+          "rmse": 1.9126534904592958,
+          "targetMin": -11.322521209716797,
+          "targetMax": 9.082086563110352,
+          "predictionMin": -9.783134460449219,
+          "predictionMax": 7.807888031005859
+        },
+        {
+          "variable": "Q2",
+          "unit": "kg kg-1",
+          "bias": -0.0006190150421221673,
+          "mae": 0.0011398771838635189,
+          "rmse": 0.0015967511995020015,
+          "targetMin": 0.00027729987050406635,
+          "targetMax": 0.019798539578914642,
+          "predictionMin": -0.0015432219952344894,
+          "predictionMax": 0.018777726218104362
+        },
+        {
+          "variable": "PSFC",
+          "unit": "Pa",
+          "bias": 17.66669297138047,
+          "mae": 141.1131716470258,
+          "rmse": 180.01480946419946,
+          "targetMin": 48770.96875,
+          "targetMax": 101957.2265625,
+          "predictionMin": 49187.4296875,
+          "predictionMax": 101880.40625
+        },
+        {
+          "variable": "PRECIP",
+          "unit": "mm",
+          "bias": 0.03453221506517479,
+          "mae": 0.2886516982835722,
+          "rmse": 1.2218739971146382,
+          "targetMin": -5.5080655592121275e-09,
+          "targetMax": 26.2149658203125,
+          "predictionMin": 0.0,
+          "predictionMax": 15.191822052001953
+        }
+      ],
+      "differenceFrom27KmPrediction": {
+        "maeAllValues": 12.517265104444526,
+        "rmseAllValues": 38.038417156920076,
+        "maxAbsoluteAllValues": 550.8671875
+      }
+    },
+    {
+      "conditioningResolutionKm": 27,
+      "normalizedResolutionCoordinate": 1.7320137023925781,
+      "outputShape": [
+        6,
+        99,
+        99
+      ],
+      "metricsAgainst27KmWrfTarget": [
+        {
+          "variable": "T2",
+          "unit": "K",
+          "bias": -0.025361275067196588,
+          "mae": 1.2424463685246563,
+          "rmse": 1.6108365873972434,
+          "targetMin": 251.93701171875,
+          "targetMax": 307.2831726074219,
+          "predictionMin": 250.65664672851562,
+          "predictionMax": 306.171142578125
+        },
+        {
+          "variable": "U10",
+          "unit": "m s-1",
+          "bias": 0.10680953786166687,
+          "mae": 1.2374739487350057,
+          "rmse": 1.8087573042591336,
+          "targetMin": -10.078556060791016,
+          "targetMax": 18.683300018310547,
+          "predictionMin": -8.532693862915039,
+          "predictionMax": 15.434845924377441
+        },
+        {
+          "variable": "V10",
+          "unit": "m s-1",
+          "bias": 0.4433191355378248,
+          "mae": 1.1295206312942974,
+          "rmse": 1.5022647681134955,
+          "targetMin": -11.322521209716797,
+          "targetMax": 9.082086563110352,
+          "predictionMin": -10.081294059753418,
+          "predictionMax": 7.905961036682129
+        },
+        {
+          "variable": "Q2",
+          "unit": "kg kg-1",
+          "bias": -0.0007845852464058722,
+          "mae": 0.0011483252510970442,
+          "rmse": 0.0016071419647466715,
+          "targetMin": 0.00027729987050406635,
+          "targetMax": 0.019798539578914642,
+          "predictionMin": -0.0018902653828263283,
+          "predictionMax": 0.018776409327983856
+        },
+        {
+          "variable": "PSFC",
+          "unit": "Pa",
+          "bias": -17.550632987067647,
+          "mae": 142.3837232010764,
+          "rmse": 178.71713150710403,
+          "targetMin": 48770.96875,
+          "targetMax": 101957.2265625,
+          "predictionMin": 48846.87890625,
+          "predictionMax": 101878.8046875
+        },
+        {
+          "variable": "PRECIP",
+          "unit": "mm",
+          "bias": 0.09020232541519092,
+          "mae": 0.3183275509616075,
+          "rmse": 1.227968194399603,
+          "targetMin": -5.5080655592121275e-09,
+          "targetMax": 26.2149658203125,
+          "predictionMin": 0.0,
+          "predictionMax": 16.961965560913086
+        }
+      ],
+      "differenceFrom27KmPrediction": {
+        "maeAllValues": 0.0,
+        "rmseAllValues": 0.0,
+        "maxAbsoluteAllValues": 0.0
+      }
+    },
+    {
+      "conditioningResolutionKm": 54,
+      "normalizedResolutionCoordinate": 5.196041107177734,
+      "outputShape": [
+        6,
+        99,
+        99
+      ],
+      "metricsAgainst27KmWrfTarget": [
+        {
+          "variable": "T2",
+          "unit": "K",
+          "bias": 1.064938563422857,
+          "mae": 1.860112839749292,
+          "rmse": 2.6021843339973434,
+          "targetMin": 251.93701171875,
+          "targetMax": 307.2831726074219,
+          "predictionMin": 251.41165161132812,
+          "predictionMax": 308.2909240722656
+        },
+        {
+          "variable": "U10",
+          "unit": "m s-1",
+          "bias": 0.655124427522936,
+          "mae": 1.4092303133681214,
+          "rmse": 1.9372426864042316,
+          "targetMin": -10.078556060791016,
+          "targetMax": 18.683300018310547,
+          "predictionMin": -8.041763305664062,
+          "predictionMax": 16.539657592773438
+        },
+        {
+          "variable": "V10",
+          "unit": "m s-1",
+          "bias": 0.3606845179174156,
+          "mae": 1.1415646707125955,
+          "rmse": 1.527493447604645,
+          "targetMin": -11.322521209716797,
+          "targetMax": 9.082086563110352,
+          "predictionMin": -10.234604835510254,
+          "predictionMax": 8.093751907348633
+        },
+        {
+          "variable": "Q2",
+          "unit": "kg kg-1",
+          "bias": -0.0009206764770192048,
+          "mae": 0.001256449780598769,
+          "rmse": 0.0017491410649986114,
+          "targetMin": 0.00027729987050406635,
+          "targetMax": 0.019798539578914642,
+          "predictionMin": -0.002334202639758587,
+          "predictionMax": 0.0187290757894516
+        },
+        {
+          "variable": "PSFC",
+          "unit": "Pa",
+          "bias": -97.81262434955617,
+          "mae": 180.42455568947045,
+          "rmse": 228.065766777624,
+          "targetMin": 48770.96875,
+          "targetMax": 101957.2265625,
+          "predictionMin": 48819.33984375,
+          "predictionMax": 101908.7265625
+        },
+        {
+          "variable": "PRECIP",
+          "unit": "mm",
+          "bias": 0.14149896634576253,
+          "mae": 0.3393803765545224,
+          "rmse": 1.2208988100473213,
+          "targetMin": -5.5080655592121275e-09,
+          "targetMax": 26.2149658203125,
+          "predictionMin": 0.0,
+          "predictionMax": 18.925201416015625
+        }
+      ],
+      "differenceFrom27KmPrediction": {
+        "maeAllValues": 14.37929035949188,
+        "rmseAllValues": 46.19491382769288,
+        "maxAbsoluteAllValues": 382.0
+      }
+    }
+  ]
+}

@@ -11,6 +11,13 @@ Read-only source package inspected on 24 July 2026:
 The package was identified through the Sustainability Lab Slack discussion with
 Balbir Prasad. No source files in that directory were modified.
 
+The held-out comparison uses the source package’s `sample_test` GFS pair at
+2025-01-01 00Z/03Z and its d01 WRF target at 06Z. The owner-only WRF file was
+read through a container with a read-only bind mount, copied to an isolated
+temporary directory, hash-checked before and after (`5175b72e…fe938`), and the
+temporary remote copy was removed. Source permissions and contents were not
+changed.
+
 Checkpoint:
 
 ```text
@@ -35,8 +42,10 @@ they conflict with the draft. Notable conflicts:
 
 - Appendix B describes 8 fields per GFS frame; the checkpoint/source use 20.
 - The source uses 1000/850/700/500 hPa temperature and 850/700/500 hPa U/V/Q.
-- The paper calls the model domain/resolution agnostic, but validation covers
-  only four fixed domains at 27 and 9 km.
+- The paper positions FiLMeR as domain/resolution agnostic. The released
+  checkpoint does demonstrate shared, resolution-conditioned weights across
+  four domains at 27 and 9 km; this is not validation at resolutions or
+  geographies absent from training.
 - The paper’s speedup arithmetic/timing descriptions are internally
   inconsistent; this repository reports measured scope-specific timings only.
 
@@ -56,6 +65,11 @@ numerical parity. Its static channels are zeros because the original static
 file was initially unreadable; it is not an operational meteorological sample.
 Operational runs use the regenerated WPS static artifacts in
 `public/data/static/`.
+
+The regenerated d01 geogrid and the original source geogrid both hash to
+`090e9033d24d7c96f050f505d1a38ebba872d52fb82bcade841665c9a6ff0918`.
+The held-out validation fixture therefore uses the exact normalized static
+tensor rather than an approximation.
 
 ## GFS
 

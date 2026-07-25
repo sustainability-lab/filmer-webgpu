@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "kind": "held-out-wrf-reference-not-observations",
+  "split": "sample_test",
+  "domain": "d01",
+  "domainId": 1,
+  "resolutionKm": 27,
+  "validTime": "2025-01-01T06:00:00Z",
+  "previousGfsTime": "2025-01-01T00:00:00Z",
+  "currentGfsTime": "2025-01-01T03:00:00Z",
+  "gridShape": [
+    99,
+    99
+  ],
+  "variables": [
+    {
+      "name": "T2",
+      "unit": "K"
+    },
+    {
+      "name": "U10",
+      "unit": "m s-1"
+    },
+    {
+      "name": "V10",
+      "unit": "m s-1"
+    },
+    {
+      "name": "Q2",
+      "unit": "kg kg-1"
+    },
+    {
+      "name": "PSFC",
+      "unit": "Pa"
+    },
+    {
+      "name": "PRECIP",
+      "unit": "mm"
+    }
+  ],
+  "semantics": {
+    "state": "Physical WRF target fields bilinearly resized to 99x99.",
+    "precipitation": "WRF RAINC + RAINNC accumulated precipitation.",
+    "scope": "One held-out sample_test case. WRF is model supervision, not an observation or the full paper test set."
+  },
+  "sourceSha256": {
+    "gfsPrevious": "e0ca4c39d3ce5cd42c3e70ff65bbf49493ab0c2e47f55bd2764f2ad1c75e474c",
+    "gfsCurrent": "72fd81143e443312f38a2dadbf57cf746ec27d92aadbd2297cde1533822f1bcc",
+    "wrfTarget": "5175b72e35de94315db60611cdecca3218136879793f40322e1c04837bcfe938",
+    "normalizedStatic": "6f8a1cab517586ff5136db3938fed1a3168ae6adb0a3f647d308aa8a4a49cae2",
+    "staticGeogrid": "090e9033d24d7c96f050f505d1a38ebba872d52fb82bcade841665c9a6ff0918",
+    "stateDict": "d6a23712d0295697d19535964a8157977c7e9b988cbabf0eca3bc0b500125cee"
+  },
+  "artifacts": {
+    "input": {
+      "file": "heldout-d01-20250101T0600-input.f32",
+      "shape": [
+        1,
+        70,
+        127,
+        137
+      ],
+      "bytes": 4871720,
+      "sha256": "4797ae9cc1ca5e2ccda169e6d3bb46dd6ac2bc638d186236705599535bd37597"
+    },
+    "projection": {
+      "file": "heldout-d01-20250101T0600-projection.f32",
+      "shape": [
+        1,
+        16
+      ],
+      "bytes": 64,
+      "sha256": "a78a4287af9ea63fb1e3e852f96fcc2d70edacf05e4eb8cb8e05002b5f0edfa1"
+    },
+    "target": {
+      "file": "heldout-d01-20250101T0600-wrf-target.f32",
+      "shape": [
+        6,
+        99,
+        99
+      ],
+      "bytes": 235224,
+      "sha256": "ac9dc18849bbb48413b325321fef95b5200b7ba98b2d57433c3a6fc2a05233d4"
+    },
+    "pythonPrediction": {
+      "file": "heldout-d01-20250101T0600-python-prediction.f32",
+      "shape": [
+        6,
+        99,
+        99
+      ],
+      "bytes": 235224,
+      "sha256": "2e3d5dc6dde108c3c91041a2c0c8c8dc6b2d84f28c2b775a7b70f11ea49c6654"
+    }
+  },
+  "metrics": [
+    {
+      "variable": "T2",
+      "unit": "K",
+      "bias": -0.025361275067196588,
+      "mae": 1.2424463685246563,
+      "rmse": 1.6108365873972434,
+      "targetMin": 251.93701171875,
+      "targetMax": 307.2831726074219,
+      "predictionMin": 250.65664672851562,
+      "predictionMax": 306.171142578125
+    },
+    {
+      "variable": "U10",
+      "unit": "m s-1",
+      "bias": 0.10680953786166687,
+      "mae": 1.2374739487350057,
+      "rmse": 1.8087573042591336,
+      "targetMin": -10.078556060791016,
+      "targetMax": 18.683300018310547,
+      "predictionMin": -8.532693862915039,
+      "predictionMax": 15.434845924377441
+    },
+    {
+      "variable": "V10",
+      "unit": "m s-1",
+      "bias": 0.4433191355378248,
+      "mae": 1.1295206312942974,
+      "rmse": 1.5022647681134955,
+      "targetMin": -11.322521209716797,
+      "targetMax": 9.082086563110352,
+      "predictionMin": -10.081294059753418,
+      "predictionMax": 7.905961036682129
+    },
+    {
+      "variable": "Q2",
+      "unit": "kg kg-1",
+      "bias": -0.0007845852464058722,
+      "mae": 0.0011483252510970442,
+      "rmse": 0.0016071419647466715,
+      "targetMin": 0.00027729987050406635,
+      "targetMax": 0.019798539578914642,
+      "predictionMin": -0.0018902653828263283,
+      "predictionMax": 0.018776409327983856
+    },
+    {
+      "variable": "PSFC",
+      "unit": "Pa",
+      "bias": -17.550632987067647,
+      "mae": 142.3837232010764,
+      "rmse": 178.71713150710403,
+      "targetMin": 48770.96875,
+      "targetMax": 101957.2265625,
+      "predictionMin": 48846.87890625,
+      "predictionMax": 101878.8046875
+    },
+    {
+      "variable": "PRECIP",
+      "unit": "mm",
+      "bias": 0.09020232541519092,
+      "mae": 0.3183275509616075,
+      "rmse": 1.227968194399603,
+      "targetMin": -5.5080655592121275e-09,
+      "targetMax": 26.2149658203125,
+      "predictionMin": 0.0,
+      "predictionMax": 16.961965560913086
+    }
+  ]
+}

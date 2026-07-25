@@ -184,8 +184,13 @@ export class FilmerSession {
     input: Float32Array,
     domainId: number,
     forecastTimestamp: Date,
+    resolutionKm?: number,
   ): Promise<ModelRun> {
-    const projection = normalizedProjection(domainId, forecastTimestamp);
+    const projection = normalizedProjection(
+      domainId,
+      forecastTimestamp,
+      resolutionKm,
+    );
     const started = performance.now();
     const outputs = await this.session.run({
       input_data: new ort.Tensor("float32", input, [1, 70, 127, 137]),

@@ -1,0 +1,77 @@
+{
+  "case": {
+    "split": "sample_test",
+    "domain": "d01",
+    "validTime": "2025-01-01T06:00:00Z"
+  },
+  "checkpointSha256": "1e648a0a017be62416d43942f13dab5f41bb7a25b49d59eece18a9a6afb1b557",
+  "metrics": [
+    {
+      "variable": "T2",
+      "unit": "K",
+      "bias": -0.025361275067196588,
+      "mae": 1.2424463685246563,
+      "rmse": 1.6108365873972434,
+      "targetMin": 251.93701171875,
+      "targetMax": 307.2831726074219,
+      "predictionMin": 250.65664672851562,
+      "predictionMax": 306.171142578125
+    },
+    {
+      "variable": "U10",
+      "unit": "m s-1",
+      "bias": 0.10680953786166687,
+      "mae": 1.2374739487350057,
+      "rmse": 1.8087573042591336,
+      "targetMin": -10.078556060791016,
+      "targetMax": 18.683300018310547,
+      "predictionMin": -8.532693862915039,
+      "predictionMax": 15.434845924377441
+    },
+    {
+      "variable": "V10",
+      "unit": "m s-1",
+      "bias": 0.4433191355378248,
+      "mae": 1.1295206312942974,
+      "rmse": 1.5022647681134955,
+      "targetMin": -11.322521209716797,
+      "targetMax": 9.082086563110352,
+      "predictionMin": -10.081294059753418,
+      "predictionMax": 7.905961036682129
+    },
+    {
+      "variable": "Q2",
+      "unit": "kg kg-1",
+      "bias": -0.0007845852464058722,
+      "mae": 0.0011483252510970442,
+      "rmse": 0.0016071419647466715,
+      "targetMin": 0.00027729987050406635,
+      "targetMax": 0.019798539578914642,
+      "predictionMin": -0.0018902653828263283,
+      "predictionMax": 0.018776409327983856
+    },
+    {
+      "variable": "PSFC",
+      "unit": "Pa",
+      "bias": -17.550632987067647,
+      "mae": 142.3837232010764,
+      "rmse": 178.71713150710403,
+      "targetMin": 48770.96875,
+      "targetMax": 101957.2265625,
+      "predictionMin": 48846.87890625,
+      "predictionMax": 101878.8046875
+    },
+    {
+      "variable": "PRECIP",
+      "unit": "mm",
+      "bias": 0.09020232541519092,
+      "mae": 0.3183275509616075,
+      "rmse": 1.227968194399603,
+      "targetMin": -5.5080655592121275e-09,
+      "targetMax": 26.2149658203125,
+      "predictionMin": 0.0,
+      "predictionMax": 16.961965560913086
+    }
+  ],
+  "fixtureManifestSha256": "8d586b2184fbcdf8c7ff7533dccb3c6ca41be63cc061681834f9e2ac16e04ddb"
+}

@@ -3,6 +3,8 @@ import { motion } from "framer-motion";
 import { strToU8, zipSync } from "fflate";
 import {
   ArrowRight,
+  CaretLeft,
+  CaretRight,
   CheckCircle,
   CloudArrowDown,
   Cpu,
@@ -11,6 +13,8 @@ import {
   ListChecks,
   MapPin,
   NavigationArrow,
+  Pause,
+  Play,
   Pulse,
   Warning,
 } from "@phosphor-icons/react";
@@ -43,6 +47,14 @@ import {
   type LoadProgress,
   type ModelManifest,
 } from "./lib/runtime";
+import {
+  differenceField,
+  loadValidationFloat,
+  loadValidationManifest,
+  verificationMetrics,
+  type ValidationManifest,
+  type VerificationMetric,
+} from "./lib/verification";
 
 const variableLabels = [
   "2 m temperature",
@@ -71,6 +83,14 @@ type StepDetail = {
   status: StepStatus;
   inferenceMilliseconds?: number;
 };
+
+type ForecastFrame = {
+  validTime: string;
+  values: Float32Array;
+};
+
+type ComparisonView = "prediction" | "reference" | "difference";
+type RunKind = "none" | "parity" | "validation" | "bundle" | "live";
 
 function formatBytes(bytes: number) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
@@ -136,12 +156,20 @@ function StageBar({
       <div className="flex items-baseline justify-between gap-3">
         <div>
           <p className="text-xs font-semibold text-stone-800">{label}</p>
-          <p className="mt-0.5 font-mono text-[10px] text-stone-500">
+          <p
+            className={`mt-0.5 font-mono text-[10px] text-stone-500 ${
+              state === "active" ? "stage-detail-live" : ""
+            }`}
+          >
             {detail}
           </p>
         </div>
         <span className={`stage-state stage-state-${state}`}>
-          {state === "complete" ? "ready" : state}
+          {state === "complete"
+            ? "ready"
+            : state === "active"
+              ? `${Math.round(percent)}%`
+              : state}
         </span>
       </div>
       <div
@@ -166,13 +194,30 @@ export default function App() {
   const [horizon, setHorizon] = useState(96);
   const [variableIndex, setVariableIndex] = useState(0);
   const [requestedBackend, setRequestedBackend] = useState<"auto" | Backend>(
-    "auto",
+    "wasm",
   );
   const [runtimeState, setRuntimeState] = useState<RuntimeState>("idle");
+  const [runKind, setRunKind] = useState<RunKind>("none");
   const [runtimeBackend, setRuntimeBackend] = useState<Backend | null>(null);
   const [manifest, setManifest] = useState<ModelManifest | null>(null);
+  const [validationManifest, setValidationManifest] =
+    useState<ValidationManifest | null>(null);
   const [progress, setProgress] = useState<LoadProgress | null>(null);
   const [field, setField] = useState<Float32Array | null>(null);
+  const [forecastFrames, setForecastFrames] = useState<ForecastFrame[]>([]);
+  const [activeFrameIndex, setActiveFrameIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [referenceField, setReferenceField] =
+    useState<Float32Array | null>(null);
+  const [comparisonView, setComparisonView] =
+    useState<ComparisonView>("prediction");
+  const [comparisonMetrics, setComparisonMetrics] = useState<
+    VerificationMetric[] | null
+  >(null);
+  const [validationParity, setValidationParity] = useState<
+    ReturnType<typeof parityMetrics> | null
+  >(null);
+  const [validationResolution, setValidationResolution] = useState(27);
   const [stepMilliseconds, setStepMilliseconds] = useState<number | null>(null);
   const [parity, setParity] = useState<ReturnType<typeof parityMetrics> | null>(
     null,
@@ -187,6 +232,11 @@ export default function App() {
   const [gfsDownloadedBytes, setGfsDownloadedBytes] = useState(0);
   const [staticReady, setStaticReady] = useState(false);
   const [stepDetails, setStepDetails] = useState<StepDetail[]>([]);
+  const [currentAction, setCurrentAction] = useState(
+    "Ready for a verification or forecast run",
+  );
+  const [runStartedAt, setRunStartedAt] = useState<number | null>(null);
+  const [runElapsedMilliseconds, setRunElapsedMilliseconds] = useState(0);
   const [outputGrid, setOutputGrid] = useState<{
     latitude: Float32Array;
     longitude: Float32Array;
@@ -207,10 +257,12 @@ export default function App() {
     Promise.all([
       loadFloatFixture("fixture-physical.f32"),
       loadModelManifest(),
+      loadValidationManifest(),
     ])
-      .then(([physical, modelManifest]) => {
+      .then(([physical, modelManifest, heldOutManifest]) => {
         setField(physical);
         setManifest(modelManifest);
+        setValidationManifest(heldOutManifest);
       })
       .catch((loadError: unknown) => {
         setError(
@@ -220,6 +272,30 @@ export default function App() {
         );
       });
   }, []);
+
+  useEffect(() => {
+    if (runStartedAt === null) return;
+    const update = () => {
+      setRunElapsedMilliseconds(Date.now() - runStartedAt);
+    };
+    update();
+    if (runtimeState !== "loading" && runtimeState !== "running") return;
+    const timer = window.setInterval(update, 200);
+    return () => window.clearInterval(timer);
+  }, [runStartedAt, runtimeState]);
+
+  useEffect(() => {
+    if (!isPlaying || forecastFrames.length < 2) return;
+    const timer = window.setInterval(() => {
+      setActiveFrameIndex((current) => (current + 1) % forecastFrames.length);
+    }, 900);
+    return () => window.clearInterval(timer);
+  }, [isPlaying, forecastFrames.length]);
+
+  useEffect(() => {
+    const selectedFrame = forecastFrames[activeFrameIndex];
+    if (selectedFrame) setLastForecastTime(selectedFrame.validTime);
+  }, [activeFrameIndex, forecastFrames]);
 
   useEffect(() => {
     loadOutputGrid(domainId)
@@ -241,6 +317,51 @@ export default function App() {
       ? manifest.artifacts.webgpu
       : manifest.artifacts.wasm;
   }, [manifest, requestedBackend]);
+
+  const predictionField =
+    forecastFrames[activeFrameIndex]?.values ?? field;
+  const displayedField = useMemo(() => {
+    if (!predictionField) return null;
+    if (comparisonView === "reference" && referenceField) {
+      return referenceField;
+    }
+    if (comparisonView === "difference" && referenceField) {
+      return differenceField(predictionField, referenceField);
+    }
+    return predictionField;
+  }, [predictionField, referenceField, comparisonView]);
+
+  function beginRun(
+    action: string,
+    kind: RunKind,
+    preserveComparison = false,
+  ) {
+    setError(null);
+    setParity(null);
+    setValidationParity(null);
+    setSequenceProgress(0);
+    setForecastFrames([]);
+    setActiveFrameIndex(0);
+    setIsPlaying(false);
+    setCurrentAction(action);
+    setRunKind(kind);
+    setRunStartedAt(Date.now());
+    setRunElapsedMilliseconds(0);
+    if (!preserveComparison) {
+      setReferenceField(null);
+      setComparisonMetrics(null);
+      setComparisonView("prediction");
+    }
+  }
+
+  function publishFrame(next: ForecastFrame, prior: ForecastFrame[]) {
+    const frames = [...prior, next];
+    setForecastFrames(frames);
+    setActiveFrameIndex(frames.length - 1);
+    setField(next.values);
+    setLastForecastTime(next.validTime);
+    return frames;
+  }
 
   function updateStep(index: number, patch: Partial<StepDetail>) {
     setStepDetails((current) =>
@@ -286,19 +407,50 @@ export default function App() {
       session = await FilmerSession.create(
         manifest,
         requestedBackend,
-        setProgress,
+        (next) => {
+          setProgress(next);
+          setCurrentAction(
+            next.stage === "download"
+              ? `Downloading model · ${formatBytes(next.loaded)} / ${formatBytes(next.total)}`
+              : next.stage === "checksum"
+                ? "Verifying model SHA-256 checksum"
+                : "Compiling ONNX execution graph",
+          );
+        },
       );
       sessionRef.current = session;
       setRuntimeBackend(session.backend);
+      setRuntimeState("ready");
+      setCurrentAction(`Model ready · ${session.backend.toUpperCase()}`);
+    }
+    return session;
+  }
+
+  async function ensureVerifiedSession() {
+    if (!manifest) throw new Error("Model manifest is not ready");
+    let session = sessionRef.current;
+    if (!session || session.backend !== "wasm") {
+      setRequestedBackend("wasm");
+      setRuntimeState("loading");
+      session = await FilmerSession.create(manifest, "wasm", (next) => {
+        setProgress(next);
+        setCurrentAction(
+          next.stage === "download"
+            ? `Downloading verified fp32 model · ${formatBytes(next.loaded)} / ${formatBytes(next.total)}`
+            : next.stage === "checksum"
+              ? "Verifying fp32 model SHA-256 checksum"
+              : "Compiling verified WASM execution graph",
+        );
+      });
+      sessionRef.current = session;
+      setRuntimeBackend("wasm");
       setRuntimeState("ready");
     }
     return session;
   }
 
   async function runParityStep() {
-    setError(null);
-    setParity(null);
-    setSequenceProgress(0);
+    beginRun("Preparing committed Python parity tensors", "parity");
     setStepDetails([
       {
         index: 0,
@@ -311,6 +463,7 @@ export default function App() {
     try {
       const session = await ensureSession();
       setRuntimeState("running");
+      setCurrentAction("Loading parity input and raw PyTorch heads");
       const [
         input,
         referenceState,
@@ -327,8 +480,13 @@ export default function App() {
         domainId,
         new Date("2025-01-01T06:00:00Z"),
       );
-      setField(result.physical);
-      setLastForecastTime("2025-01-01T06:00:00Z");
+      publishFrame(
+        {
+          values: result.physical,
+          validTime: "2025-01-01T06:00:00Z",
+        },
+        [],
+      );
       setStepMilliseconds(result.elapsedMilliseconds);
       setSequenceProgress(1);
       updateStep(0, {
@@ -364,19 +522,110 @@ export default function App() {
         });
       }
       setRuntimeState("success");
+      setCurrentAction(
+        `Parity complete · ${result.elapsedMilliseconds.toFixed(1)} ms model compute`,
+      );
     } catch (runError) {
       setRuntimeState("error");
       updateStep(0, { status: "error" });
+      setCurrentAction("Parity run failed");
       setError(
         runError instanceof Error ? runError.message : "Inference failed",
       );
     }
   }
 
+  async function runHeldOutVerification() {
+    beginRun(
+      validationResolution === 27
+        ? "Preparing held-out GFS input and WRF target"
+        : `Preparing ${validationResolution} km conditioning probe against the 27 km WRF target`,
+      "validation",
+    );
+    setDomainId(1);
+    setStaticReady(true);
+    setStepDetails([
+      {
+        index: 0,
+        leadHours: 3,
+        validTime: "2025-01-01T06:00:00Z",
+        inputPair: "held-out GFS 00Z → 03Z",
+        status: "running",
+      },
+    ]);
+    try {
+      if (!validationManifest) {
+        throw new Error("Held-out validation manifest is not ready");
+      }
+      const session = await ensureVerifiedSession();
+      setRuntimeState("running");
+      setCurrentAction(
+        `Loading held-out WRF reference · ${formatBytes(
+          validationManifest.artifacts.target.bytes,
+        )}`,
+      );
+      const [input, target, pythonPrediction] = await Promise.all([
+        loadValidationFloat(validationManifest.artifacts.input.file),
+        loadValidationFloat(validationManifest.artifacts.target.file),
+        loadValidationFloat(
+          validationManifest.artifacts.pythonPrediction.file,
+        ),
+      ]);
+      setCurrentAction(
+        `Running FiLMeR · d01 conditioning ${validationResolution} km`,
+      );
+      const result = await session.run(
+        input,
+        validationManifest.domainId,
+        new Date(validationManifest.validTime),
+        validationResolution,
+      );
+      const metrics = verificationMetrics(
+        result.physical,
+        target,
+        validationManifest.variables,
+      );
+      publishFrame(
+        {
+          values: result.physical,
+          validTime: validationManifest.validTime,
+        },
+        [],
+      );
+      setReferenceField(target);
+      setComparisonMetrics(metrics);
+      setComparisonView("prediction");
+      setValidationParity(
+        validationResolution === 27
+          ? parityMetrics(result.physical, pythonPrediction)
+          : null,
+      );
+      setStepMilliseconds(result.elapsedMilliseconds);
+      setSequenceProgress(1);
+      updateStep(0, {
+        status: "complete",
+        inferenceMilliseconds: result.elapsedMilliseconds,
+      });
+      setRuntimeState("success");
+      setCurrentAction(
+        validationResolution === 27
+          ? `Held-out WRF comparison complete · ${result.elapsedMilliseconds.toFixed(1)} ms`
+          : `${validationResolution} km conditioning probe complete · fixed 99 × 99 output`,
+      );
+    } catch (verificationError) {
+      setRuntimeState("error");
+      updateStep(0, { status: "error" });
+      setCurrentAction("Held-out WRF comparison failed");
+      setError(
+        verificationError instanceof Error
+          ? verificationError.message
+          : "Held-out WRF comparison failed",
+      );
+    }
+  }
+
   async function runSequence() {
-    setError(null);
-    setParity(null);
-    setSequenceProgress(0);
+    beginRun("Reading prepared GFS trajectory bundle", "bundle");
     try {
       if (!sequenceBundle) throw new Error("Choose a prepared sequence bundle");
       setStepDetails(
@@ -391,12 +640,16 @@ export default function App() {
       const session = await ensureSession();
       setRuntimeState("running");
       const timings: number[] = [];
+      let producedFrames: ForecastFrame[] = [];
       for (
         let step = 0;
         step < sequenceBundle.manifest.outputTimes.length;
         step += 1
       ) {
         updateStep(step, { status: "running" });
+        setCurrentAction(
+          `Running bundle step ${step + 1}/${sequenceBundle.manifest.outputTimes.length}`,
+        );
         const input = inputForSequenceStep(sequenceBundle, step);
         const result = await session.run(
           input,
@@ -409,9 +662,12 @@ export default function App() {
           inferenceMilliseconds: result.elapsedMilliseconds,
         });
         updateStep(step + 1, { status: "running" });
-        setField(result.physical);
-        setLastForecastTime(
-          `${sequenceBundle.manifest.outputTimes[step]}Z`,
+        producedFrames = publishFrame(
+          {
+            values: result.physical,
+            validTime: `${sequenceBundle.manifest.outputTimes[step]}Z`,
+          },
+          producedFrames,
         );
         setSequenceProgress(step + 1);
       }
@@ -419,9 +675,13 @@ export default function App() {
         timings.reduce((sum, timing) => sum + timing, 0) / timings.length,
       );
       setRuntimeState("success");
+      setCurrentAction(
+        `Bundle complete · ${producedFrames.length} fields ready for playback`,
+      );
     } catch (sequenceError) {
       setRuntimeState("error");
       failActiveSteps();
+      setCurrentAction("Prepared sequence run failed");
       setError(
         sequenceError instanceof Error
           ? sequenceError.message
@@ -431,8 +691,7 @@ export default function App() {
   }
 
   async function runLiveGfs() {
-    setError(null);
-    setParity(null);
+    beginRun("Validating requested NOAA GFS cycle", "live");
     setGfsProgress(null);
     setGfsFrameIndex(0);
     setGfsDownloadedBytes(0);
@@ -450,6 +709,9 @@ export default function App() {
       setSequenceProgress(0);
       const session = await ensureSession();
       setRuntimeState("running");
+      setCurrentAction(
+        `Loading normalized WPS static geography · month ${cycle.getUTCMonth() + 1}`,
+      );
       const normalizedStatic = await loadStaticMonth(
         cycle.getUTCMonth() + 1,
       );
@@ -461,6 +723,11 @@ export default function App() {
         setGfsProgress(next);
         setGfsFrameIndex(frameNumber + 1);
         setGfsDownloadedBytes(accountedBytes + next.loadedBytes);
+        setCurrentAction(
+          `GFS frame ${frameNumber + 1}/${requirements.gfsFrames} · ${
+            next.completedFields
+          }/${next.totalFields} fields · ${next.stage}`,
+        );
       };
       let frameBytes = 0;
       let previous = await fetchGfsFrame(
@@ -481,10 +748,16 @@ export default function App() {
       accountedBytes += frameBytes;
       frameNumber += 1;
       const timings: number[] = [];
+      let producedFrames: ForecastFrame[] = [];
       for (let step = 0; step < requirements.outputSteps; step += 1) {
         updateStep(step, { status: "running" });
         const forecastTime = new Date(
           cycle.getTime() + (step + 1) * 3 * 60 * 60 * 1000,
+        );
+        setCurrentAction(
+          `Running FiLMeR step ${step + 1}/${requirements.outputSteps} · valid ${forecastTime
+            .toISOString()
+            .slice(0, 16)} UTC`,
         );
         const result = await session.run(
           assembleInput(previous, current, normalizedStatic),
@@ -496,8 +769,13 @@ export default function App() {
           status: "complete",
           inferenceMilliseconds: result.elapsedMilliseconds,
         });
-        setField(result.physical);
-        setLastForecastTime(forecastTime.toISOString());
+        producedFrames = publishFrame(
+          {
+            values: result.physical,
+            validTime: forecastTime.toISOString(),
+          },
+          producedFrames,
+        );
         setSequenceProgress(step + 1);
         if (step + 1 < requirements.outputSteps) {
           updateStep(step + 1, { status: "fetching" });
@@ -520,9 +798,13 @@ export default function App() {
         timings.reduce((sum, timing) => sum + timing, 0) / timings.length,
       );
       setRuntimeState("success");
+      setCurrentAction(
+        `Operational sequence complete · ${producedFrames.length} fields ready for playback`,
+      );
     } catch (liveError) {
       setRuntimeState("error");
       failActiveSteps();
+      setCurrentAction("Operational GFS run failed");
       setError(
         liveError instanceof Error
           ? liveError.message
@@ -554,6 +836,8 @@ export default function App() {
       )
     : sequenceBundle
       ? 100
+      : runKind === "validation" || runKind === "parity"
+        ? 100
       : 0;
   const plannedOutputSteps = stepDetails.length || requirements.outputSteps;
   const completedOutputSteps = Math.max(
@@ -563,16 +847,16 @@ export default function App() {
   const inferenceStagePercent =
     (completedOutputSteps / Math.max(1, plannedOutputSteps)) * 100;
   const fieldSummary = useMemo(() => {
-    if (!field) return null;
+    if (!displayedField) return null;
     const start = variableIndex * 99 * 99;
     const end = start + 99 * 99;
     let minimum = Number.POSITIVE_INFINITY;
     let maximum = Number.NEGATIVE_INFINITY;
     let sum = 0;
     for (let index = start; index < end; index += 1) {
-      minimum = Math.min(minimum, field[index]);
-      maximum = Math.max(maximum, field[index]);
-      sum += field[index];
+      minimum = Math.min(minimum, displayedField[index]);
+      maximum = Math.max(maximum, displayedField[index]);
+      sum += displayedField[index];
     }
     return {
       minimum,
@@ -580,10 +864,11 @@ export default function App() {
       mean: sum / (99 * 99),
       unit: metadata.targets.units[variableIndex],
     };
-  }, [field, variableIndex]);
+  }, [displayedField, variableIndex]);
+  const selectedVerification = comparisonMetrics?.[variableIndex] ?? null;
 
   function downloadLatestOutput() {
-    if (!field) return;
+    if (!predictionField) return;
     const coordinates =
       outputGrid
         ? {
@@ -615,9 +900,9 @@ export default function App() {
     const entries: Record<string, Uint8Array> = {
       "manifest.json": strToU8(JSON.stringify(outputManifest, null, 2)),
       "filmer-output.f32": new Uint8Array(
-        field.buffer,
-        field.byteOffset,
-        field.byteLength,
+        predictionField.buffer,
+        predictionField.byteOffset,
+        predictionField.byteLength,
       ),
     };
     if (outputGrid) {
@@ -724,16 +1009,20 @@ export default function App() {
             </div>
             <div className="self-end border-t border-stone-500/40 pt-4">
               <p className="max-w-[46ch] text-sm leading-relaxed text-stone-600">
-                ONNX Runtime Web executes the trained FiLMeR network on the
-                local GPU, with a WebAssembly CPU fallback. Forecast semantics
-                remain conditional on a complete 3-hourly GFS sequence.
+                ONNX Runtime Web executes the trained FiLMeR network locally.
+                The fp32 WebAssembly path is parity-verified; WebGPU remains an
+                experimental accelerator. Forecast semantics remain
+                conditional on a complete 3-hourly GFS sequence.
               </p>
             </div>
           </div>
           <div className="field-readout">
             <div>
               <span>field</span>
-              <strong>{variableLabels[variableIndex]}</strong>
+              <strong>
+                {comparisonView === "difference" ? "error · " : ""}
+                {variableLabels[variableIndex]}
+              </strong>
             </div>
             <div>
               <span>valid</span>
@@ -756,10 +1045,119 @@ export default function App() {
               </strong>
             </div>
           </div>
+          <div className="map-toolbar">
+            <div
+              aria-label="Displayed dataset"
+              className="map-view-toggle"
+              role="group"
+            >
+              {(["prediction", "reference", "difference"] as const).map(
+                (view) => (
+                  <button
+                    className={
+                      comparisonView === view
+                        ? "map-view-toggle-active"
+                        : ""
+                    }
+                    disabled={!referenceField && view !== "prediction"}
+                    key={view}
+                    onClick={() => setComparisonView(view)}
+                    type="button"
+                  >
+                    {view === "prediction"
+                      ? "FiLMeR"
+                      : view === "reference"
+                        ? "WRF target"
+                        : "FiLMeR − WRF"}
+                  </button>
+                ),
+              )}
+            </div>
+            <div
+              aria-label="Forecast time controls"
+              className="time-controls"
+              role="group"
+            >
+              <button
+                aria-label="Previous forecast time"
+                disabled={forecastFrames.length < 2}
+                onClick={() => {
+                  setIsPlaying(false);
+                  setActiveFrameIndex((current) =>
+                    Math.max(0, current - 1),
+                  );
+                }}
+                type="button"
+              >
+                <CaretLeft size={15} weight="bold" />
+              </button>
+              <button
+                aria-label={isPlaying ? "Pause animation" : "Play animation"}
+                disabled={forecastFrames.length < 2}
+                onClick={() => setIsPlaying((current) => !current)}
+                type="button"
+              >
+                {isPlaying ? (
+                  <Pause size={15} weight="fill" />
+                ) : (
+                  <Play size={15} weight="fill" />
+                )}
+              </button>
+              <button
+                aria-label="Next forecast time"
+                disabled={forecastFrames.length < 2}
+                onClick={() => {
+                  setIsPlaying(false);
+                  setActiveFrameIndex((current) =>
+                    Math.min(forecastFrames.length - 1, current + 1),
+                  );
+                }}
+                type="button"
+              >
+                <CaretRight size={15} weight="bold" />
+              </button>
+              <span>
+                {forecastFrames.length
+                  ? `${activeFrameIndex + 1}/${forecastFrames.length}`
+                  : "single field"}
+              </span>
+            </div>
+          </div>
+          {forecastFrames.length > 1 ? (
+            <div className="time-scrubber">
+              <input
+                aria-label="Displayed forecast time"
+                max={forecastFrames.length - 1}
+                min={0}
+                onChange={(event) => {
+                  setIsPlaying(false);
+                  setActiveFrameIndex(Number(event.target.value));
+                }}
+                step={1}
+                type="range"
+                value={activeFrameIndex}
+              />
+              <div>
+                <span>
+                  {forecastFrames[0].validTime.slice(0, 16).replace("T", " ")}
+                </span>
+                <span>
+                  {forecastFrames
+                    .at(-1)!
+                    .validTime.slice(0, 16)
+                    .replace("T", " ")}
+                </span>
+              </div>
+            </div>
+          ) : null}
           <ForecastMap
-            values={field}
+            values={displayedField}
             variableIndex={variableIndex}
             domainId={domainId}
+            unit={metadata.targets.units[variableIndex]}
+            mode={
+              comparisonView === "difference" ? "difference" : "field"
+            }
           />
           <div className="mt-5 flex gap-2 overflow-x-auto pb-2">
             {variableLabels.map((label, index) => (
@@ -776,7 +1174,7 @@ export default function App() {
             ))}
             <button
               className="variable-pill ml-auto inline-flex items-center gap-2"
-              disabled={!field}
+              disabled={!predictionField}
               onClick={downloadLatestOutput}
               type="button"
             >
@@ -784,6 +1182,89 @@ export default function App() {
               Download output
             </button>
           </div>
+          {selectedVerification && validationManifest ? (
+            <section className="verification-results" aria-live="polite">
+              <div className="verification-results-heading">
+                <div>
+                  <p className="eyebrow">Held-out WRF comparison</p>
+                  <h2>
+                    {variableLabels[variableIndex]} ·{" "}
+                    {validationResolution === 27
+                      ? "matched d01 case"
+                      : `${validationResolution} km conditioning sensitivity`}
+                  </h2>
+                </div>
+                <span>
+                  {validationResolution === 27
+                    ? `Browser↔Python max |Δ| ${
+                        validationParity
+                          ? validationParity.maxAbs.toExponential(2)
+                          : "—"
+                      }`
+                    : "Off-training conditioning probe"}
+                </span>
+              </div>
+              <div className="verification-grid">
+                <div>
+                  <span>mean bias</span>
+                  <strong>
+                    {selectedVerification.bias.toPrecision(4)}{" "}
+                    {selectedVerification.unit}
+                  </strong>
+                </div>
+                <div>
+                  <span>MAE</span>
+                  <strong>
+                    {selectedVerification.mae.toPrecision(4)}{" "}
+                    {selectedVerification.unit}
+                  </strong>
+                </div>
+                <div>
+                  <span>RMSE</span>
+                  <strong>
+                    {selectedVerification.rmse.toPrecision(4)}{" "}
+                    {selectedVerification.unit}
+                  </strong>
+                </div>
+              </div>
+              <div className="verification-table-wrap">
+                <table className="verification-table">
+                  <thead>
+                    <tr>
+                      <th>field</th>
+                      <th>bias</th>
+                      <th>MAE</th>
+                      <th>RMSE</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {comparisonMetrics!.map((metric, index) => (
+                      <tr
+                        className={
+                          index === variableIndex
+                            ? "verification-row-active"
+                            : ""
+                        }
+                        key={metric.variable}
+                        onClick={() => setVariableIndex(index)}
+                      >
+                        <td>{metric.variable}</td>
+                        <td>{metric.bias.toPrecision(4)}</td>
+                        <td>{metric.mae.toPrecision(4)}</td>
+                        <td>
+                          {metric.rmse.toPrecision(4)} {metric.unit}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="verification-scope">
+                {validationManifest.semantics.scope} Use the map tabs for the
+                FiLMeR field, WRF target, and signed error.
+              </p>
+            </section>
+          ) : null}
         </motion.div>
 
         <motion.aside
@@ -818,13 +1299,18 @@ export default function App() {
               <NavigationArrow size={18} weight="bold" />
               <div>
                 <p className="text-xs font-semibold">
-                  Custom coordinates / resolution are not enabled
+                  Resolution-conditioned by design
                 </p>
                 <p className="mt-1 text-[11px] leading-relaxed text-stone-600">
-                  The projection MLP accepts numbers, but the checkpoint has no
-                  validation beyond these four domains and its static encoder
-                  is tied to the d01 WPS grid. Arbitrary values would create a
-                  plausible-looking, scientifically unsupported map.
+                  Resolution is a first-class model input: the same checkpoint
+                  learned 9 km and 27 km domains. The 1–54 km control below
+                  exposes FiLMeR&apos;s multi-resolution hypothesis for direct
+                  sensitivity testing.
+                </p>
+                <p className="mt-2 text-[11px] leading-relaxed text-stone-600">
+                  <strong>Validation boundary:</strong> off-training values do
+                  not create new spatial information; output remains 99 × 99.
+                  Arbitrary locations also need a new geogrid and supervision.
                 </p>
                 <p className="mt-2 font-mono text-[10px] text-[#7f3d20]">
                   Needs new geogrid → WRF supervision → retraining/transfer test
@@ -1029,12 +1515,18 @@ export default function App() {
                 setRuntimeBackend(null);
               }}
             >
-              <option value="auto">Auto — WebGPU then WASM</option>
+              <option value="wasm">Verified — WebAssembly fp32</option>
               <option value="webgpu" disabled={!webGpuAvailable()}>
-                WebGPU — fp16
+                Experimental — WebGPU fp16
               </option>
-              <option value="wasm">WebAssembly — fp32</option>
             </select>
+            {requestedBackend === "webgpu" ? (
+              <p className="mt-2 border-l-2 border-[#a6552c] pl-3 text-[11px] leading-relaxed text-[#7f3d20]">
+                WebGPU executes successfully, but its browser parity is not
+                acceptable for scientific output. Use the fp32 WASM path for
+                validated fields.
+              </p>
+            ) : null}
             <div className="mt-3 flex justify-between font-mono text-[11px] uppercase tracking-[0.12em] text-stone-500">
               <span>{modelArtifact?.precision ?? "—"}</span>
               <span>
@@ -1072,7 +1564,7 @@ export default function App() {
                   ? "Loading verified model"
                   : runtimeState === "running"
                     ? "Running FiLMeR"
-                    : "Run one validated step"}
+                    : "Run numerical parity fixture"}
               </span>
               {runtimeState === "success" ? (
                 <CheckCircle size={18} weight="bold" />
@@ -1082,6 +1574,78 @@ export default function App() {
                 <ArrowRight size={18} weight="bold" />
               )}
             </button>
+            <div className="verification-card">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold">
+                    Held-out WRF verification
+                  </p>
+                  <p className="mt-1 text-[11px] leading-relaxed text-stone-600">
+                    GFS 00Z/03Z → WRF 06Z · d01 · 1 Jan 2025. Compares all six
+                    physical outputs.
+                  </p>
+                </div>
+                <span className="verification-badge">sample_test</span>
+              </div>
+              <label
+                className="mt-4 flex items-center justify-between gap-3 text-[11px]"
+                htmlFor="resolution-probe"
+              >
+                <span>Resolution conditioning value</span>
+                <span className="font-mono">{validationResolution} km</span>
+              </label>
+              <input
+                aria-describedby="resolution-probe-note"
+                className="mt-2 w-full accent-[#a6552c]"
+                disabled={
+                  runtimeState === "loading" || runtimeState === "running"
+                }
+                id="resolution-probe"
+                max={54}
+                min={1}
+                onChange={(event) =>
+                  setValidationResolution(Number(event.target.value))
+                }
+                step={1}
+                type="range"
+                value={validationResolution}
+              />
+              <div className="mt-1 flex justify-between font-mono text-[9px] text-stone-500">
+                <span>1 km probe</span>
+                <span>9 km trained</span>
+                <span>27 km d01 truth</span>
+                <span>54 km probe</span>
+              </div>
+              <p
+                className={`mt-3 text-[10px] leading-relaxed ${
+                  validationResolution === 27
+                    ? "text-stone-500"
+                    : "border-l-2 border-[#a6552c] pl-3 text-[#7f3d20]"
+                }`}
+                id="resolution-probe-note"
+              >
+                {validationResolution === 27
+                  ? "Matched validation: fixed 99 × 99 output over the trained 27 km d01 geogrid."
+                  : `Sensitivity experiment only: changing the conditioning scalar to ${validationResolution} km does not create ${validationResolution} km physics or new spatial information. The output remains 99 × 99 and is compared with a 27 km WRF target.`}
+              </p>
+              <button
+                className="sequence-button mt-3"
+                disabled={
+                  !validationManifest ||
+                  runtimeState === "loading" ||
+                  runtimeState === "running"
+                }
+                onClick={runHeldOutVerification}
+                type="button"
+              >
+                <span>
+                  {validationResolution === 27
+                    ? "Run FiLMeR vs held-out WRF"
+                    : `Run ${validationResolution} km conditioning probe`}
+                </span>
+                <Pulse size={18} weight="bold" />
+              </button>
+            </div>
             <button
               className="sequence-button mt-2"
               disabled={
@@ -1110,6 +1674,84 @@ export default function App() {
         </motion.aside>
       </section>
 
+      <section className="verification-results mx-auto max-w-[1400px] border-x border-t border-stone-400/30">
+        <div className="verification-results-heading">
+          <div>
+            <p className="eyebrow">Held-out WRF comparison</p>
+            <h2>Prediction, supervision target, and signed error</h2>
+          </div>
+          <div className="verification-scope">
+            <strong>
+              {comparisonMetrics
+                ? `${validationResolution} km conditioning · d01 · 2025-01-01 06Z`
+                : "Ready to run"}
+            </strong>
+            <span>one sample · WRF is not an observation</span>
+          </div>
+        </div>
+        {comparisonMetrics ? (
+          <>
+            <div className="verification-metric-grid">
+              {comparisonMetrics.map((metric, index) => (
+                <button
+                  className={`verification-metric ${
+                    variableIndex === index
+                      ? "verification-metric-active"
+                      : ""
+                  }`}
+                  key={metric.variable}
+                  onClick={() => setVariableIndex(index)}
+                  type="button"
+                >
+                  <span>
+                    {metric.variable} · {metric.unit}
+                  </span>
+                  <strong>{metric.rmse.toPrecision(4)}</strong>
+                  <small>RMSE</small>
+                  <dl>
+                    <div>
+                      <dt>bias</dt>
+                      <dd>{metric.bias.toPrecision(3)}</dd>
+                    </div>
+                    <div>
+                      <dt>MAE</dt>
+                      <dd>{metric.mae.toPrecision(3)}</dd>
+                    </div>
+                  </dl>
+                </button>
+              ))}
+            </div>
+            <div className="verification-footnote">
+              <p>
+                The target is the paper pipeline’s held-out WRF tensor after
+                the exact 99 × 99 bilinear transform. State fields are compared
+                in physical units; precipitation is RAINC + RAINNC.
+              </p>
+              <p className="font-mono">
+                {validationResolution === 27
+                  ? `Browser ↔ Python physical parity max |Δ| ${
+                      validationParity
+                        ? validationParity.maxAbs.toExponential(2)
+                        : "pending"
+                    }`
+                  : "No Python parity reference is claimed for an off-training conditioning value."}
+              </p>
+            </div>
+          </>
+        ) : (
+          <div className="verification-empty">
+            <p>
+              Run the held-out case in Local execution to unlock all six
+              metrics and the FiLMeR / WRF / error map switcher.
+            </p>
+            <span>
+              Live future cycles remain “verification pending” until a
+              time-matched WRF analysis or observations become available.
+            </span>
+          </div>
+        )}
+      </section>
+
       <section className="mx-auto max-w-[1400px] border-x border-t border-stone-400/30">
         <div className="grid grid-cols-1 lg:grid-cols-[0.72fr_1.28fr]">
           <div className="p-5 md:p-8 lg:border-r lg:border-stone-400/30">
@@ -1122,6 +1764,21 @@ export default function App() {
               reported separately so a fast kernel is not mistaken for a fast
               end-to-end forecast.
             </p>
+            <div
+              aria-live="polite"
+              className={`execution-now execution-now-${runtimeState}`}
+            >
+              <div>
+                <span>current operation</span>
+                <strong>{currentAction}</strong>
+              </div>
+              <div>
+                <span>end-to-end elapsed</span>
+                <strong>
+                  {(runElapsedMilliseconds / 1000).toFixed(1)} s
+                </strong>
+              </div>
+            </div>
             <div className="mt-5 space-y-5">
               <StageBar
                 label="Verified model"
@@ -1144,9 +1801,13 @@ export default function App() {
                 }
               />
               <StageBar
-                label="WPS static geography"
+                label="Static geography / prepared input"
                 detail={
-                  staticReady
+                  runKind === "parity"
+                    ? "preassembled parity tensor · mean-static placeholder"
+                    : runKind === "validation"
+                      ? "checksum-identical d01 WPS geogrid · January"
+                  : staticReady
                     ? `month ${String(
                         new Date(`${gfsCycle}:00Z`).getUTCMonth() + 1,
                       ).padStart(2, "0")} · 30 × 127 × 137`
@@ -1154,15 +1815,29 @@ export default function App() {
                       ? "normalized static tensor in bundle"
                       : "cached monthly d01 artifact"
                 }
-                percent={staticReady || Boolean(sequenceBundle) ? 100 : 0}
+                percent={
+                  staticReady ||
+                  Boolean(sequenceBundle) ||
+                  runKind === "parity"
+                    ? 100
+                    : 0
+                }
                 state={
-                  staticReady || sequenceBundle ? "complete" : "waiting"
+                  staticReady ||
+                  sequenceBundle ||
+                  runKind === "parity"
+                    ? "complete"
+                    : "waiting"
                 }
               />
               <StageBar
-                label="NOAA GFS inputs"
+                label="GFS boundary conditions"
                 detail={
-                  gfsProgress
+                  runKind === "validation"
+                    ? "held-out 00Z + 03Z pair · exact training normalization"
+                    : runKind === "parity"
+                      ? "committed preassembled numerical fixture"
+                  : gfsProgress
                     ? `${gfsFrameIndex}/${requirements.gfsFrames} frames · ${formatBytes(
                         gfsDownloadedBytes,
                       )}`
@@ -1189,6 +1864,32 @@ export default function App() {
                     : inferenceStagePercent > 0
                       ? "active"
                       : runtimeState === "error" && stepDetails.length
+                        ? "error"
+                        : "waiting"
+                }
+              />
+              <StageBar
+                label="Reference comparison"
+                detail={
+                  comparisonMetrics
+                    ? `six fields · WRF target · ${
+                        validationResolution === 27
+                          ? "matched 27 km case"
+                          : `${validationResolution} km conditioning probe`
+                      }`
+                    : runKind === "live" || runKind === "bundle"
+                      ? "verification pending; no future WRF target in this run"
+                      : "held-out WRF target available on request"
+                }
+                percent={comparisonMetrics ? 100 : 0}
+                state={
+                  comparisonMetrics
+                    ? "complete"
+                    : runKind === "validation" &&
+                        runtimeState === "running"
+                      ? "active"
+                      : runKind === "validation" &&
+                          runtimeState === "error"
                         ? "error"
                         : "waiting"
                 }
@@ -1227,7 +1928,22 @@ export default function App() {
                   </thead>
                   <tbody>
                     {stepDetails.map((step) => (
-                      <tr key={step.index}>
+                      <tr
+                        className={
+                          forecastFrames[step.index] &&
+                          activeFrameIndex === step.index
+                            ? "step-row-active"
+                            : forecastFrames[step.index]
+                              ? "step-row-ready"
+                              : ""
+                        }
+                        key={step.index}
+                        onClick={() => {
+                          if (!forecastFrames[step.index]) return;
+                          setIsPlaying(false);
+                          setActiveFrameIndex(step.index);
+                        }}
+                      >
                         <td className="font-mono">
                           {String(step.index + 1).padStart(2, "0")} · +
                           {step.leadHours} h
@@ -1290,8 +2006,9 @@ export default function App() {
               {runtimeBackend ?? "Not loaded"}
             </p>
             <p className="mt-2 text-xs leading-relaxed text-stone-600">
-              WebGPU uses the fp16 release artifact. WASM uses the fp32 artifact
-              and may be substantially slower in a non-isolated Pages tab.
+              WASM uses the parity-verified fp32 artifact and is the default.
+              WebGPU uses the smaller fp16 artifact only as an explicit
+              experimental execution-path test.
             </p>
           </div>
           <div className="border-t border-stone-400/30 p-5 md:p-8 lg:border-l lg:border-t-0">

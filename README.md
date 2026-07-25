@@ -1,8 +1,8 @@
 # FiLMeR WebGPU
 
 Browser deployment of the released **FiLMeR v1.0 Variant B** regional weather
-emulator. ONNX Runtime Web uses WebGPU with an fp16 graph when available and a
-verified fp32 WebAssembly fallback.
+emulator. ONNX Runtime Web uses the verified fp32 WebAssembly path by default
+and exposes the fp16 WebGPU path explicitly as experimental.
 
 **Live app:** <https://sustainability-lab.github.io/filmer-webgpu/>
 
@@ -15,6 +15,10 @@ verified fp32 WebAssembly fallback.
   normalization, projection vector, and physical-unit reconstruction.
 - Supports only the four trained domains: d01 at 27 km and d02–d04 at 9 km.
 - Produces 99×99 fields for T2, U10, V10, Q2, PSFC, and precipitation.
+- Shows a units-aware color bar, drag/wheel/touch map navigation, and
+  play/pause/time scrubbing for multi-step runs.
+- Runs a browser-side comparison against an exact held-out WRF target with
+  bias, MAE, RMSE, and prediction/reference/error views.
 - Exports a ZIP with raw float32 fields, units, forecast metadata, and 2-D
   latitude/longitude arrays; `scripts/output_to_netcdf.py` converts it to
   NetCDF.
@@ -41,7 +45,9 @@ The static encoder uses the published WPS configuration in
 `configs/namelist.wps`. Browser artifacts were regenerated with the same
 read-only WPS executable, GEOGRID table, and geography installation used by the
 authors. The original `geo_em.d01.nc` was not readable to the deployment
-account, so a byte-for-byte comparison with that file is not available.
+account directly; a read-only hash through an isolated container confirmed
+that it is byte-for-byte identical to the published d01 source geogrid:
+`090e9033d24d7c96f050f505d1a38ebba872d52fb82bcade841665c9a6ff0918`.
 
 For a static site, the Google Cloud record-range path is the only service-free
 operational route we validated. It avoids each ~500 MB global GRIB file but the
@@ -56,16 +62,59 @@ See [DATA_PIPELINE.md](docs/DATA_PIPELINE.md) for exact acquisition semantics.
 | Question | FiLMeR v1.0 answer |
 |---|---|
 | Arbitrary location? | No. Only d01–d04 were trained. |
-| Arbitrary resolution? | No. Only 27 km and 9 km were trained. |
+| Resolution-conditioned? | Yes. One checkpoint learned both 27 km and 9 km domains, and resolution is an explicit model input. |
+| Arbitrary resolution validated? | Not yet. The UI exposes a 1–54 km conditioning-sensitivity probe; only 27 km and 9 km have training support. |
 | 1 km / hourly? | No. Requires new 1 km WRF supervision and an hourly model. |
 | Standalone 96 h forecast? | No. It conditionally downscales a GFS trajectory. |
 | Output cadence | 3 hours. |
 | Output grid | Fixed 99×99. |
 | Operational status | Research prototype; not safety-critical guidance. |
 
-Unsupported geography, resolution, or cadence requires a separately trained
-and held-out-validated checkpoint; the browser does not expose unvalidated
-controls.
+FiLMeR's multi-resolution selling point is real at the architecture level: one
+set of weights is conditioned on resolution and was trained across both 9 km
+and 27 km domains. The browser deliberately exposes that conditioning input
+from 1–54 km so the transfer hypothesis can be tested. Unsupported geography,
+resolution, or cadence still requires a suitable geogrid, supervision, and
+held-out validation before it becomes a forecast product. The current probe
+retains the original d01 geogrid and fixed 99×99 output, so it cannot add 1 km
+spatial information.
+
+The committed conditioning probe actually runs the released checkpoint at
+`1, 3, 9, 27, 54 km` values while holding the d01 input/geography fixed. On the
+same 27 km WRF target, changing only the scalar from 27 km to 1 km increases T2
+RMSE from `1.61 K` to `6.02 K`; the output is still `99×99`. This confirms that
+the network responds to the control, but it does not validate a 1 km product.
+Full results are in `reports/resolution-conditioning-probe.json`.
+
+## Held-out WRF comparison
+
+The app includes one exact `sample_test` case:
+
+```text
+GFS inputs   2025-01-01 00Z and 03Z
+WRF target   d01, valid 2025-01-01 06Z
+target grid  raw 7×129×129 → bilinear 6×99×99
+semantics    state fields + (RAINC + RAINNC)
+```
+
+The target is the WRF supervision used by the FiLMeR evaluation pipeline; it is
+not station data, radar, or an analysis. For the released checkpoint and
+matched 27 km conditioning, Python produced:
+
+| Variable | Bias | MAE | RMSE |
+|---|---:|---:|---:|
+| T2 (K) | -0.0254 | 1.2424 | 1.6108 |
+| U10 (m s-1) | 0.1068 | 1.2375 | 1.8088 |
+| V10 (m s-1) | 0.4433 | 1.1295 | 1.5023 |
+| Q2 (kg kg-1) | -0.000785 | 0.001148 | 0.001607 |
+| PSFC (Pa) | -17.55 | 142.38 | 178.72 |
+| precipitation (mm) | 0.0902 | 0.3183 | 1.2280 |
+
+These are descriptive metrics for one held-out field, not a claim of aggregate
+forecast skill. The exact tensor checksums and fuller ranges are in
+`public/data/validation/manifest.json` and
+`reports/heldout-wrf-d01-20250101T0600.json`. Live future runs are explicitly
+marked `verification pending`.
 
 ## Reproducibility
 
@@ -94,6 +143,14 @@ uv run python scripts/export_model.py \
   --output-dir artifacts
 uv run python scripts/build_fixture.py \
   --checkpoint /path/to/model_filmerv1.0.pth
+uv run python scripts/build_validation_fixture.py \
+  --state-dict artifacts/filmer_v1_variant_b_state_dict.pt \
+  --gfs-previous /path/to/gfs_2025-01-01_00.pt \
+  --gfs-current /path/to/gfs_2025-01-01_03.pt \
+  --wrf-target /path/to/2025-01-01_06:00:00.pt \
+  --normalized-static public/data/static/static-month-01.f32
+uv run python scripts/probe_resolution_conditioning.py \
+  --state-dict artifacts/filmer_v1_variant_b_state_dict.pt
 uv run python scripts/validate_export.py --precision fp32
 uv run python scripts/benchmark_onnx.py
 ```
@@ -108,8 +165,10 @@ FP32 ONNX vs PyTorch parity on the committed deterministic fixture:
 
 FP16 is deliberately reported separately: CPU parity showed maximum raw drift
 `0.110511`, maximum physical drift `20.21875`, and 5 wet-mask disagreements.
-WebGPU is therefore a fast visualization/research path, not a numerically
-interchangeable substitute for fp32.
+The production browser executed the WebGPU fixture but showed maximum raw drift
+of `37.9`; an fp32 WebGPU test did not resolve that backend drift. WebGPU is
+therefore an explicit experimental execution-path test, not a numerically
+interchangeable substitute for the default fp32 WASM path.
 
 Native ONNX Runtime CPU on macOS 15.7.7 arm64 measured a median
 `86.318 ms/step` over 10 runs; 32 model calls are `2.762 s` compute-only.

@@ -82,6 +82,7 @@ export function assembleInput(
 export function normalizedProjection(
   domainId: number,
   timestamp: Date,
+  resolutionKm = domainById(domainId).resolutionKm,
 ): Float32Array {
   const domain = domainById(domainId);
   const [latMin, lonMin, latMax, lonMax] = domain.modelBounds;
@@ -114,7 +115,7 @@ export function normalizedProjection(
     latSpan / lonSpan,
     relativeLat,
     relativeLon,
-    domain.resolutionKm,
+    resolutionKm,
     timestamp.getUTCHours() / 24,
     dayOfYear / 365,
     (timestamp.getUTCMonth() + 1) / 12,
