@@ -1343,9 +1343,9 @@ export default function App() {
             </div>
             <div
               aria-label="Lead-time presets"
-              className="mt-3 grid grid-cols-4 gap-1"
+              className="mt-3 grid grid-cols-5 gap-1"
             >
-              {[3, 24, 48, 96].map((hours) => (
+              {[3, 6, 24, 48, 96].map((hours) => (
                 <button
                   className={`border px-2 py-2 font-mono text-[10px] transition-colors ${
                     horizon === hours
