@@ -1241,7 +1241,9 @@ input:focus-visible,
   }
 
   .map-shell {
-    min-height: 300px;
+    width: 100%;
+    min-height: 0;
+    aspect-ratio: 1 / 1;
   }
 
   .map-toolbar,
