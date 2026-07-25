@@ -1,11 +1,13 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { reconstructPhysical } from "../src/lib/preprocess";
 import { verificationMetrics } from "../src/lib/verification";
 
 const dataDirectory = resolve("public/data");
+const require = createRequire(import.meta.url);
 
 function bytes(file: string) {
   return readFileSync(resolve(dataDirectory, file));
@@ -146,6 +148,16 @@ describe("browser model artifacts", () => {
       expect(totalBytes, runtime).toBe(artifact.bytes);
       expect(hash.digest("hex"), runtime).toBe(artifact.sha256);
     }
+  });
+});
+
+describe("browser dependency patches", () => {
+  it("requests the adapter storage-buffer limit needed by FiLMeR Concat kernels", () => {
+    const webGpuBundle = require.resolve("onnxruntime-web/webgpu");
+    const source = readFileSync(webGpuBundle, "utf8");
+    expect(source).toContain(
+      "maxStorageBuffersPerShaderStage",
+    );
   });
 });
 

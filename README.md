@@ -165,10 +165,15 @@ FP32 ONNX vs PyTorch parity on the committed deterministic fixture:
 
 FP16 is deliberately reported separately: CPU parity showed maximum raw drift
 `0.110511`, maximum physical drift `20.21875`, and 5 wet-mask disagreements.
-The production browser executed the WebGPU fixture but showed maximum raw drift
-of `37.9`; an fp32 WebGPU test did not resolve that backend drift. WebGPU is
-therefore an explicit experimental execution-path test, not a numerically
-interchangeable substitute for the default fp32 WASM path.
+An initial browser run exposed an ONNX Runtime Web 1.22 device-limit omission:
+FiLMeR's `Concat` needs nine storage buffers, while the WebGPU default is
+eight. `scripts/patch_ort_webgpu.mjs` now requests the adapter's advertised
+limit during `npm install`. After the fix, a clean Chrome WebGPU run completed
+without validation errors at `1.09` maximum raw drift and `1,198 ms` model
+compute. That is still far from fp32 WASM parity, so WebGPU remains an explicit
+experimental path rather than a numerically interchangeable default. The
+observed before/after run is recorded in
+`reports/parity-webgpu-browser.json`.
 
 Native ONNX Runtime CPU on macOS 15.7.7 arm64 measured a median
 `86.318 ms/step` over 10 runs; 32 model calls are `2.762 s` compute-only.

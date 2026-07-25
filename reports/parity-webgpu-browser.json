@@ -1,0 +1,30 @@
+{
+  "date": "2026-07-25",
+  "scope": "one browser run of the committed deterministic parity fixture",
+  "runtime": {
+    "library": "onnxruntime-web",
+    "version": "1.22.0",
+    "executionProvider": "webgpu",
+    "modelPrecision": "fp16",
+    "artifactBytes": 79587004
+  },
+  "beforeDeviceLimitFix": {
+    "maximumRawAbsoluteError": 37.9,
+    "browserValidationError": "Concat requested 9 storage buffers, exceeding the default device limit of 8 even though the adapter advertised 10",
+    "validRun": false
+  },
+  "deviceLimitFix": {
+    "script": "scripts/patch_ort_webgpu.mjs",
+    "requestedLimit": "adapter.limits.maxStorageBuffersPerShaderStage",
+    "reason": "ONNX Runtime Web 1.22 omitted this supported adapter limit from GPUDeviceDescriptor.requiredLimits"
+  },
+  "afterDeviceLimitFix": {
+    "maximumRawAbsoluteError": 1.09,
+    "modelComputeMilliseconds": 1198.2,
+    "endToEndSeconds": 5.6,
+    "browserValidationErrors": 0,
+    "validExecutionPathTest": true,
+    "parityValidated": false
+  },
+  "interpretation": "The WebGPU graph executes after requesting the adapter limit, but fp16 browser output is not numerically interchangeable with the parity-verified fp32 WASM path."
+}
