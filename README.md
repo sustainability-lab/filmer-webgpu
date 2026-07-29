@@ -14,8 +14,10 @@ benchmarks remain available for research, but are not exposed as a user choice.
 - Automatically chooses a recent completed NOAA GFS cycle, downloads the model
   and required weather fields, and runs the 39,768,627-parameter checkpoint
   entirely in the browser.
-- Produces a focused 6-hour outlook with two 3-hourly timestamps; playback
-  appears automatically when both fields are ready.
+- Produces a selectable 3–24-hour outlook with 1, 2, 4, or 8 timestamps at
+  3-hour cadence; playback appears automatically for multi-timestamp runs.
+- Reports model setup, geography, weather-data, inference, and total elapsed
+  time after each completed browser run.
 - Decodes GRIB2 locally and reproduces the training crop, channel order,
   normalization, projection vector, and physical-unit reconstruction.
 - Supports only the four trained domains: d01 at 27 km and d02–d04 at 9 km.
@@ -29,13 +31,13 @@ benchmarks remain available for research, but are not exposed as a user choice.
   navigation, and play/pause/time scrubbing.
 - Keeps validation metrics and resolution-conditioning experiments in committed
   reports rather than placing research controls in the forecast interface.
-- Exports a ZIP containing both raw float32 timestamps, units, forecast
+- Exports a ZIP containing all selected raw float32 timestamps, units, forecast
   metadata, and 2-D latitude/longitude arrays.
 
 This is **conditional downscaling**, not a standalone forecast model. An output
-at `t+3 h` consumes GFS at `t-3 h` and `t`. The public 6-hour product performs
-two independent FiLMeR steps from three GFS frames; outputs are never fed back
-as inputs.
+at `t+3 h` consumes GFS at `t-3 h` and `t`. A selected `n`-timestamp product
+performs `n` independent FiLMeR steps from `n+1` GFS frames; outputs are never
+fed back as inputs.
 
 ## Operational inputs
 

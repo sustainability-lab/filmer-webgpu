@@ -28,4 +28,5 @@ Convert to NetCDF:
 uv run python scripts/output_to_netcdf.py browser-output.zip output.nc
 ```
 
-The public 6-hour workflow exports both 3-hourly forecast timestamps in one ZIP.
+The public workflow exports every selected 3-hourly forecast timestamp in one
+ZIP.

@@ -335,6 +335,31 @@ a:focus-visible {
   padding-bottom: 0;
 }
 
+.timestamp-select {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.75rem;
+  align-items: center;
+  min-height: 46px;
+  margin-top: 1rem;
+  padding: 0.42rem 0.45rem 0.42rem 0.8rem;
+  border: 1px solid #cbc8bf;
+  border-radius: 10px;
+  color: #62645e;
+  background: #fbfaf6;
+  font-size: 0.72rem;
+}
+
+.timestamp-select select {
+  min-height: 34px;
+  padding: 0 0.55rem;
+  border: 1px solid #d4d1c9;
+  border-radius: 7px;
+  color: #30322e;
+  background: #fff;
+  font-size: 0.7rem;
+}
+
 .run-button {
   width: 100%;
   min-height: 52px;
@@ -412,6 +437,51 @@ a:focus-visible {
   background: #f8e9e6;
   font-size: 0.72rem;
   line-height: 1.45;
+}
+
+.timing-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0;
+  margin: 0.9rem 0 0;
+  padding-top: 0.8rem;
+  border-top: 1px solid #dedbd3;
+}
+
+.timing-grid div {
+  min-width: 0;
+  padding: 0 0.45rem;
+  border-right: 1px solid #dedbd3;
+}
+
+.timing-grid div:first-child {
+  padding-left: 0;
+}
+
+.timing-grid div:last-child {
+  padding-right: 0;
+  border-right: 0;
+}
+
+.timing-grid dt,
+.timing-grid dd {
+  overflow: hidden;
+  margin: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timing-grid dt {
+  color: #898a84;
+  font-size: 0.54rem;
+}
+
+.timing-grid dd {
+  margin-top: 0.22rem;
+  color: #373934;
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 0.58rem;
+  font-weight: 650;
 }
 
 .forecast {
@@ -748,5 +818,14 @@ footer {
   .timeline {
     grid-column: 1 / -1;
     grid-row: 2;
+  }
+
+  .timing-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    row-gap: 0.7rem;
+  }
+
+  .timing-grid div:nth-child(3) {
+    border-right: 0;
   }
 }

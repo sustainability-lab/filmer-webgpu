@@ -31,9 +31,7 @@ import {
   deriveDisplayFields,
 } from "./lib/visualization";
 
-const FORECAST_HOURS = 6;
-const OUTPUT_STEPS = FORECAST_HOURS / 3;
-const GFS_FRAMES = OUTPUT_STEPS + 1;
+const TIMESTAMP_OPTIONS = [1, 2, 4, 8] as const;
 
 type RuntimeState =
   | "idle"
@@ -46,6 +44,15 @@ type ForecastFrame = {
   validTime: string;
   physical: Float32Array;
   inferenceMilliseconds: number;
+};
+
+type RunTimings = {
+  modelMilliseconds: number;
+  modelCached: boolean;
+  geographyMilliseconds: number;
+  weatherMilliseconds: number;
+  inferenceMilliseconds: number;
+  totalMilliseconds: number;
 };
 
 function latestCompletedGfsCycle() {
@@ -79,6 +86,12 @@ function formatBytes(bytes: number) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
+function formatDuration(milliseconds: number) {
+  return milliseconds < 1000
+    ? `${Math.round(milliseconds)} ms`
+    : `${(milliseconds / 1000).toFixed(1)} s`;
+}
+
 function DomainButton({
   domain,
   selected,
@@ -109,6 +122,7 @@ function DomainButton({
 export default function App() {
   const [domainId, setDomainId] = useState(1);
   const [variableIndex, setVariableIndex] = useState(0);
+  const [outputSteps, setOutputSteps] = useState(2);
   const [manifest, setManifest] = useState<ModelManifest | null>(null);
   const [runtimeState, setRuntimeState] = useState<RuntimeState>("idle");
   const [progress, setProgress] = useState(0);
@@ -121,6 +135,7 @@ export default function App() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [cycleUsed, setCycleUsed] = useState<Date | null>(null);
   const [downloadedBytes, setDownloadedBytes] = useState(0);
+  const [timings, setTimings] = useState<RunTimings | null>(null);
   const [outputGrid, setOutputGrid] = useState<{
     latitude: Float32Array;
     longitude: Float32Array;
@@ -177,6 +192,15 @@ export default function App() {
 
   function selectDomain(id: number) {
     setDomainId(id);
+    resetForecast();
+  }
+
+  function selectOutputSteps(steps: number) {
+    setOutputSteps(steps);
+    resetForecast();
+  }
+
+  function resetForecast() {
     setFrames([]);
     setActiveFrameIndex(0);
     setIsPlaying(false);
@@ -185,6 +209,7 @@ export default function App() {
     setRuntimeState("idle");
     setStatusText("Ready to download the latest forecast");
     setError(null);
+    setTimings(null);
   }
 
   async function ensureSession() {
@@ -225,30 +250,43 @@ export default function App() {
     setActiveFrameIndex(0);
     setIsPlaying(false);
     setDownloadedBytes(0);
+    setTimings(null);
     setProgress(1);
     setRuntimeState("loading");
 
     try {
+      const runStarted = performance.now();
       const runDomainId = domainId;
+      const runOutputSteps = outputSteps;
+      const gfsFrameCount = runOutputSteps + 1;
       const cycle = latestCompletedGfsCycle();
+      const modelCached = Boolean(sessionRef.current);
+      const modelStarted = performance.now();
       const session = await ensureSession();
+      const modelMilliseconds = performance.now() - modelStarted;
       setCycleUsed(cycle);
 
       setRuntimeState("running");
       setProgress(32);
       setStatusText("Loading regional geography");
+      const geographyStarted = performance.now();
       const normalizedStatic = await loadStaticMonth(
         cycle.getUTCMonth() + 1,
       );
+      const geographyMilliseconds = performance.now() - geographyStarted;
 
       const prior = previousCycleInput(cycle);
       const requests = [
         { cycle: prior.cycle, forecastHour: prior.forecastHour },
         { cycle, forecastHour: 0 },
-        { cycle, forecastHour: 3 },
+        ...Array.from({ length: runOutputSteps - 1 }, (_, index) => ({
+          cycle,
+          forecastHour: (index + 1) * 3,
+        })),
       ];
       const gfs: Float32Array[] = [];
       let completedBytes = 0;
+      const weatherStarted = performance.now();
 
       for (let frameIndex = 0; frameIndex < requests.length; frameIndex += 1) {
         let frameBytes = 0;
@@ -263,11 +301,11 @@ export default function App() {
                 ? next.completedFields / next.totalFields
                 : 0;
             setProgress(
-              34 + ((frameIndex + fieldFraction) / GFS_FRAMES) * 52,
+              34 + ((frameIndex + fieldFraction) / gfsFrameCount) * 52,
             );
             setDownloadedBytes(completedBytes + next.loadedBytes);
             setStatusText(
-              `Downloading weather data · ${frameIndex + 1} of ${GFS_FRAMES} · ${next.completedFields}/${next.totalFields} fields`,
+              `Downloading weather data · ${frameIndex + 1} of ${gfsFrameCount} · ${next.completedFields}/${next.totalFields} fields`,
             );
           },
           "noaa",
@@ -276,11 +314,13 @@ export default function App() {
         completedBytes += frameBytes;
         setDownloadedBytes(completedBytes);
       }
+      const weatherMilliseconds = performance.now() - weatherStarted;
 
       const nextFrames: ForecastFrame[] = [];
-      for (let step = 0; step < OUTPUT_STEPS; step += 1) {
-        setProgress(88 + step * 6);
-        setStatusText(`Running forecast · ${step + 1} of ${OUTPUT_STEPS}`);
+      let inferenceMilliseconds = 0;
+      for (let step = 0; step < runOutputSteps; step += 1) {
+        setProgress(88 + (step / runOutputSteps) * 12);
+        setStatusText(`Running forecast · ${step + 1} of ${runOutputSteps}`);
         const validTime = new Date(
           cycle.getTime() + (step + 1) * 3 * 60 * 60 * 1000,
         );
@@ -294,10 +334,21 @@ export default function App() {
           physical: result.physical,
           inferenceMilliseconds: result.elapsedMilliseconds,
         });
+        inferenceMilliseconds += result.elapsedMilliseconds;
         setFrames([...nextFrames]);
         setActiveFrameIndex(nextFrames.length - 1);
+        setProgress(88 + ((step + 1) / runOutputSteps) * 12);
       }
 
+      const totalMilliseconds = performance.now() - runStarted;
+      setTimings({
+        modelMilliseconds,
+        modelCached,
+        geographyMilliseconds,
+        weatherMilliseconds,
+        inferenceMilliseconds,
+        totalMilliseconds,
+      });
       setProgress(100);
       setRuntimeState("success");
       setStatusText("Forecast ready");
@@ -467,9 +518,29 @@ export default function App() {
               <span>3</span>
               <div>
                 <h2>Run forecast</h2>
-                <p>6-hour outlook · 2 timestamps · 3-hourly</p>
+                <p>
+                  {outputSteps * 3}-hour outlook · {outputSteps}{" "}
+                  {outputSteps === 1 ? "timestamp" : "timestamps"} · 3-hourly
+                </p>
               </div>
             </div>
+            <label className="timestamp-select">
+              <span>Forecast timestamps</span>
+              <select
+                disabled={busy}
+                onChange={(event) =>
+                  selectOutputSteps(Number(event.target.value))
+                }
+                value={outputSteps}
+              >
+                {TIMESTAMP_OPTIONS.map((steps) => (
+                  <option key={steps} value={steps}>
+                    {steps} {steps === 1 ? "timestamp" : "timestamps"} ·{" "}
+                    {steps * 3} h
+                  </option>
+                ))}
+              </select>
+            </label>
             <button
               className="run-button"
               disabled={busy || !manifest}
@@ -499,6 +570,34 @@ export default function App() {
                   <small>{formatBytes(downloadedBytes)} weather data received</small>
                 ) : null}
                 {error ? <p className="error-message">{error}</p> : null}
+                {runtimeState === "success" && timings ? (
+                  <dl className="timing-grid" aria-label="Run timings">
+                    <div>
+                      <dt>Model</dt>
+                      <dd>
+                        {timings.modelCached
+                          ? "cached"
+                          : formatDuration(timings.modelMilliseconds)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Geography</dt>
+                      <dd>{formatDuration(timings.geographyMilliseconds)}</dd>
+                    </div>
+                    <div>
+                      <dt>Weather data</dt>
+                      <dd>{formatDuration(timings.weatherMilliseconds)}</dd>
+                    </div>
+                    <div>
+                      <dt>Inference</dt>
+                      <dd>{formatDuration(timings.inferenceMilliseconds)}</dd>
+                    </div>
+                    <div>
+                      <dt>Total</dt>
+                      <dd>{formatDuration(timings.totalMilliseconds)}</dd>
+                    </div>
+                  </dl>
+                ) : null}
               </div>
             )}
           </section>
