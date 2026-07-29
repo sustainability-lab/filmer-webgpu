@@ -30,8 +30,20 @@ def main() -> None:
         manifest = json.loads(bundle.read("manifest.json"))
         variables = manifest["variables"]
         units = manifest["units"]
-        field = read_f32(bundle, "filmer-output.f32", (6, 99, 99))
-        coordinates = manifest.get("coordinates", {})
+        files = manifest.get("files", ["filmer-output.f32"])
+        timestamps = manifest.get(
+            "timestamps",
+            [manifest.get("forecastTime")],
+        )
+        if len(files) != len(timestamps) or not files:
+            raise ValueError(
+                "Manifest files and timestamps must be non-empty and aligned"
+            )
+        fields = np.stack(
+            [read_f32(bundle, name, (6, 99, 99)) for name in files],
+            axis=0,
+        )
+        coordinates = manifest.get("coordinates") or {}
         latitude_file = coordinates.get("latitudeFile")
         longitude_file = coordinates.get("longitudeFile")
         latitude = (
@@ -47,8 +59,8 @@ def main() -> None:
 
     data_vars = {
         name: (
-            ("y", "x"),
-            field[index],
+            ("time", "y", "x"),
+            fields[:, index],
             {"units": units[index], "grid_mapping": "latitude_longitude"},
         )
         for index, name in enumerate(variables)
@@ -56,14 +68,18 @@ def main() -> None:
     dataset = xr.Dataset(
         data_vars=data_vars,
         coords={
+            "time": np.asarray(timestamps, dtype="datetime64[ns]"),
             "latitude": (("y", "x"), latitude, {"units": "degrees_north"}),
             "longitude": (("y", "x"), longitude, {"units": "degrees_east"}),
         },
         attrs={
             "title": "FiLMeR v1.0 conditional regional downscaling output",
-            "forecast_time": manifest["forecastTime"],
+            "initialization": manifest.get("initialization", ""),
             "domain": manifest["domain"],
-            "resolution_km": manifest["resolutionKm"],
+            "trained_resolution_km": manifest.get(
+                "trainedResolutionKm",
+                manifest.get("resolutionKm"),
+            ),
             "model": manifest["model"],
             "checkpoint_sha256": manifest["checkpointSha256"],
             "runtime_backend": manifest["backend"],

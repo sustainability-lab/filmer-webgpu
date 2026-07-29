@@ -3,12 +3,12 @@
 The app downloads a ZIP with:
 
 - `manifest.json`
-- `filmer-output.f32`
+- one `forecast-<timestamp>.f32` file per timestamp
 - `grid-latitude.f32`
 - `grid-longitude.f32`
 
-`filmer-output.f32` is little-endian float32 in C order with shape
-`[6, 99, 99]`. Channels are:
+Each forecast file is little-endian float32 in C order with shape `[6, 99, 99]`.
+Channels are:
 
 1. T2, K
 2. U10, m s−1
@@ -18,8 +18,9 @@ The app downloads a ZIP with:
 6. precipitation, mm
 
 Latitude and longitude are little-endian float32 arrays with shape `[99,99]`.
-The manifest records the domain, nominal resolution, forecast timestamp,
-checkpoint checksum, backend, units, and conditional semantics.
+The manifest records the domain, trained resolution, initialization,
+timestamps, file names, checkpoint checksum, backend, units, and conditional
+semantics.
 
 Convert to NetCDF:
 
@@ -27,6 +28,4 @@ Convert to NetCDF:
 uv run python scripts/output_to_netcdf.py browser-output.zip output.nc
 ```
 
-The ZIP contains one forecast time. A sequence UI currently retains and exports
-the most recently computed field; it does not silently imply a four-dimensional
-forecast cube.
+The public 6-hour workflow exports both 3-hourly forecast timestamps in one ZIP.

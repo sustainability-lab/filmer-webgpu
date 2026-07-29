@@ -8,7 +8,7 @@ import {
 } from "react";
 import { geoMercator, geoPath } from "d3-geo";
 import type { Feature, FeatureCollection, Geometry } from "geojson";
-import { metadata, domainById } from "../lib/preprocess";
+import { domainById } from "../lib/preprocess";
 import {
   VARIABLE_VISUALS,
   createRasterPixels,
@@ -309,27 +309,6 @@ export function ForecastMap({
                 stroke="#a6552c"
                 strokeWidth={3 / view.scale}
               />
-              {metadata.domains
-                .filter((domain) => domain.id !== domainId)
-                .map((domain) => {
-                  const [dLatMin, dLonMin, dLatMax, dLonMax] =
-                    domain.paperBounds;
-                  const start = projection([dLonMin, dLatMax]) ?? [0, 0];
-                  const end = projection([dLonMax, dLatMin]) ?? [0, 0];
-                  return (
-                    <rect
-                      key={domain.code}
-                      x={start[0]}
-                      y={start[1]}
-                      width={end[0] - start[0]}
-                      height={end[1] - start[1]}
-                      fill="none"
-                      stroke="#6d6e67"
-                      strokeDasharray={`${4 / view.scale} ${5 / view.scale}`}
-                      strokeWidth={1.5 / view.scale}
-                    />
-                  );
-                })}
             </>
           ) : null}
         </g>
@@ -393,12 +372,10 @@ export function ForecastMap({
         {selected.code.toUpperCase()} · {selected.resolutionKm} KM · 99 × 99
       </div>
       <div
-        aria-label="North is up. Tensor row zero is rendered at the southern edge, matching the paper's origin lower setting."
+        aria-label="North is up"
         className="map-orientation"
-        title="Verified against the paper plotting code: origin='lower'. Tensor row 0 is south; row 98 is north."
       >
         <strong>N ↑</strong>
-        <span>origin: lower</span>
       </div>
       <a
         className="map-attribution"
@@ -409,8 +386,8 @@ export function ForecastMap({
         Boundary: Survey of India · 1:16M · 2026
       </a>
       {!values ? (
-        <div className="absolute inset-x-6 bottom-10 border border-stone-500/30 bg-stone-100/90 p-4 font-mono text-xs text-stone-700 backdrop-blur">
-          Load the verification case or run the model to reveal a field.
+        <div className="map-empty-state">
+          Select a domain and variable, then run the forecast.
         </div>
       ) : null}
     </div>

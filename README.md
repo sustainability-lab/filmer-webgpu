@@ -1,16 +1,21 @@
 # FiLMeR WebGPU
 
 Browser deployment of the released **FiLMeR v1.0 Variant B** regional weather
-emulator. ONNX Runtime Web uses the verified fp32 WebAssembly path by default
-and exposes the fp16 WebGPU path explicitly as experimental.
+emulator. ONNX Runtime Web uses the numerically verified fp32 WebAssembly path
+for the public forecast workflow. The converted fp16 WebGPU artifact and its
+benchmarks remain available for research, but are not exposed as a user choice.
 
 **Live app:** <https://sustainability-lab.github.io/filmer-webgpu/>
 
 ## What it does
 
-- Runs the 39,768,627-parameter checkpoint entirely in the browser.
-- Offers an instant cached 2025-01-01 prediction/WRF comparison with no GFS
-  download, plus on-demand NOAA and UCAR GDEX inputs.
+- Presents one three-step workflow: select a trained domain, select a variable,
+  then **Download data & run**.
+- Automatically chooses a recent completed NOAA GFS cycle, downloads the model
+  and required weather fields, and runs the 39,768,627-parameter checkpoint
+  entirely in the browser.
+- Produces a focused 6-hour outlook with two 3-hourly timestamps; playback
+  appears automatically when both fields are ready.
 - Decodes GRIB2 locally and reproduces the training crop, channel order,
   normalization, projection vector, and physical-unit reconstruction.
 - Supports only the four trained domains: d01 at 27 km and d02–d04 at 9 km.
@@ -22,16 +27,15 @@ and exposes the fp16 WebGPU path explicitly as experimental.
   `coolwarm`, `YlGnBu`, and `Blues`), `origin="lower"` orientation, and hPa
   pressure display; includes units-aware color bars, drag/wheel/touch map
   navigation, and play/pause/time scrubbing.
-- Runs a browser-side comparison against an exact held-out WRF target with
-  bias, MAE, RMSE, and prediction/reference/error views.
-- Exports a ZIP with raw float32 fields, units, forecast metadata, and 2-D
-  latitude/longitude arrays; `scripts/output_to_netcdf.py` converts it to
-  NetCDF.
+- Keeps validation metrics and resolution-conditioning experiments in committed
+  reports rather than placing research controls in the forecast interface.
+- Exports a ZIP containing both raw float32 timestamps, units, forecast
+  metadata, and 2-D latitude/longitude arrays.
 
 This is **conditional downscaling**, not a standalone forecast model. An output
-at `t+3 h` consumes GFS at `t-3 h` and `t`. A 96-hour request therefore performs
-32 independent FiLMeR steps from 33 GFS frames; outputs are never fed back as
-inputs.
+at `t+3 h` consumes GFS at `t-3 h` and `t`. The public 6-hour product performs
+two independent FiLMeR steps from three GFS frames; outputs are never fed back
+as inputs.
 
 ## Operational inputs
 
@@ -54,12 +58,11 @@ account directly; a read-only hash through an isolated container confirmed
 that it is byte-for-byte identical to the published d01 source geogrid:
 `090e9033d24d7c96f050f505d1a38ebba872d52fb82bcade841665c9a6ff0918`.
 
-NOAA’s Google Cloud mirror is the operational default. UCAR GDEX is also
-selectable as the training-source archive. UCAR supports CORS byte ranges but
-does not publish a GRIB index, so the app uses the matching NOAA `.idx` only to
-locate records and downloads the data bytes from UCAR. NOAA ranges are read
-four at a time; UCAR ranges are deliberately serialized in accordance with
-GDEX’s warning against simultaneous downloads.
+NOAA’s Google Cloud mirror is the automatic operational source in the public
+interface. UCAR GDEX support remains in the acquisition library and audit tools
+for provenance testing. UCAR supports CORS byte ranges but does not publish a
+GRIB index, so that research path uses the matching NOAA `.idx` only to locate
+records and downloads the data bytes from UCAR.
 
 We audited all 40 predictor records in the UCAR/NOAA 2024-05-11 00Z
 `f000/f003` pair: all 37,535,367 selected bytes were record-for-record
@@ -90,21 +93,19 @@ See [DATA_PIPELINE.md](docs/DATA_PIPELINE.md) for exact acquisition semantics.
 |---|---|
 | Arbitrary location? | No. Only d01–d04 were trained. |
 | Resolution-conditioned? | Yes. One checkpoint learned both 27 km and 9 km domains, and resolution is an explicit model input. |
-| Arbitrary resolution validated? | Not yet. The UI exposes a 1–54 km conditioning-sensitivity probe; only 27 km and 9 km have training support. |
+| Arbitrary resolution validated? | Not yet. Only 27 km and 9 km have training support. |
 | 1 km / hourly? | No. Requires new 1 km WRF supervision and an hourly model. |
 | Standalone 96 h forecast? | No. It conditionally downscales a GFS trajectory. |
 | Output cadence | 3 hours. |
 | Output grid | Fixed 99×99. |
 | Operational status | Research prototype; not safety-critical guidance. |
 
-FiLMeR's multi-resolution selling point is real at the architecture level: one
-set of weights is conditioned on resolution and was trained across both 9 km
-and 27 km domains. The browser deliberately exposes that conditioning input
-from 1–54 km so the transfer hypothesis can be tested. Unsupported geography,
-resolution, or cadence still requires a suitable geogrid, supervision, and
-held-out validation before it becomes a forecast product. The current probe
-retains the original d01 geogrid and fixed 99×99 output, so it cannot add 1 km
-spatial information.
+FiLMeR's multi-resolution capability is real at the architecture level: one set
+of weights is conditioned on resolution and was trained across both 9 km and
+27 km domains. Unsupported geography, resolution, or cadence still requires a
+suitable geogrid, supervision, and held-out validation before it becomes a
+forecast product. The committed probe retains the original d01 geogrid and
+fixed 99×99 output, so it cannot add 1 km spatial information.
 
 The committed conditioning probe actually runs the released checkpoint at
 `1, 3, 9, 27, 54 km` values while holding the d01 input/geography fixed. On the
@@ -113,9 +114,9 @@ RMSE from `1.61 K` to `6.02 K`; the output is still `99×99`. This confirms that
 the network responds to the control, but it does not validate a 1 km product.
 Full results are in `reports/resolution-conditioning-probe.json`.
 
-## Held-out WRF comparison
+## Offline held-out WRF validation
 
-**Run default prediction** loads one exact cached `sample_test` case:
+The committed validation reports use one exact cached `sample_test` case:
 
 ```text
 GFS inputs   2025-01-01 00Z and 03Z
