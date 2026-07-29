@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { motion } from "framer-motion";
 import { strToU8, zipSync } from "fflate";
 import {
@@ -10,7 +16,9 @@ import {
   Cpu,
   DownloadSimple,
   Gauge,
+  Info,
   ListChecks,
+  Lightning,
   MapPin,
   NavigationArrow,
   Pause,
@@ -32,6 +40,7 @@ import {
 } from "./lib/preprocess";
 import {
   fetchGfsFrame,
+  type GfsProvider,
   loadOutputGrid,
   loadStaticMonth,
   previousCycleInput,
@@ -55,15 +64,14 @@ import {
   type ValidationManifest,
   type VerificationMetric,
 } from "./lib/verification";
+import {
+  VARIABLE_VISUALS,
+  deriveDisplayFields,
+  displayValue,
+} from "./lib/visualization";
+import gfsSourceAudit from "../reports/gfs-source-equivalence-20240511T00Z.json";
 
-const variableLabels = [
-  "2 m temperature",
-  "10 m zonal wind",
-  "10 m meridional wind",
-  "2 m humidity",
-  "Surface pressure",
-  "Precipitation",
-];
+const variableLabels = VARIABLE_VISUALS.map((variable) => variable.label);
 
 type RuntimeState =
   | "idle"
@@ -189,6 +197,25 @@ function StageBar({
   );
 }
 
+function InfoTip({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <span className="info-tip">
+      <button aria-label={label} type="button">
+        <Info size={15} weight="bold" />
+      </button>
+      <span className="info-tip-content" role="tooltip">
+        {children}
+      </span>
+    </span>
+  );
+}
+
 export default function App() {
   const [domainId, setDomainId] = useState(1);
   const [horizon, setHorizon] = useState(96);
@@ -227,6 +254,8 @@ export default function App() {
     useState<SequenceBundle | null>(null);
   const [sequenceProgress, setSequenceProgress] = useState(0);
   const [gfsCycle, setGfsCycle] = useState(latestCompletedGfsCycle);
+  const [gfsProvider, setGfsProvider] =
+    useState<GfsProvider>("noaa");
   const [gfsProgress, setGfsProgress] = useState<GfsProgress | null>(null);
   const [gfsFrameIndex, setGfsFrameIndex] = useState(0);
   const [gfsDownloadedBytes, setGfsDownloadedBytes] = useState(0);
@@ -320,16 +349,27 @@ export default function App() {
 
   const predictionField =
     forecastFrames[activeFrameIndex]?.values ?? field;
+  const predictionDisplayField = useMemo(
+    () => (predictionField ? deriveDisplayFields(predictionField) : null),
+    [predictionField],
+  );
+  const referenceDisplayField = useMemo(
+    () => (referenceField ? deriveDisplayFields(referenceField) : null),
+    [referenceField],
+  );
   const displayedField = useMemo(() => {
-    if (!predictionField) return null;
-    if (comparisonView === "reference" && referenceField) {
-      return referenceField;
+    if (!predictionDisplayField) return null;
+    if (comparisonView === "reference" && referenceDisplayField) {
+      return referenceDisplayField;
     }
-    if (comparisonView === "difference" && referenceField) {
-      return differenceField(predictionField, referenceField);
+    if (comparisonView === "difference" && referenceDisplayField) {
+      return differenceField(
+        predictionDisplayField,
+        referenceDisplayField,
+      );
     }
-    return predictionField;
-  }, [predictionField, referenceField, comparisonView]);
+    return predictionDisplayField;
+  }, [predictionDisplayField, referenceDisplayField, comparisonView]);
 
   function beginRun(
     action: string,
@@ -535,11 +575,13 @@ export default function App() {
     }
   }
 
-  async function runHeldOutVerification() {
+  async function runHeldOutVerification(resolutionOverride?: number) {
+    const effectiveResolution =
+      resolutionOverride ?? validationResolution;
     beginRun(
-      validationResolution === 27
-        ? "Preparing held-out GFS input and WRF target"
-        : `Preparing ${validationResolution} km conditioning probe against the 27 km WRF target`,
+      effectiveResolution === 27
+        ? "Loading cached GFS demo and held-out WRF target"
+        : `Preparing ${effectiveResolution} km conditioning probe against the 27 km WRF target`,
       "validation",
     );
     setDomainId(1);
@@ -549,7 +591,7 @@ export default function App() {
         index: 0,
         leadHours: 3,
         validTime: "2025-01-01T06:00:00Z",
-        inputPair: "held-out GFS 00Z → 03Z",
+        inputPair: "cached training GFS 00Z → 03Z",
         status: "running",
       },
     ]);
@@ -572,18 +614,21 @@ export default function App() {
         ),
       ]);
       setCurrentAction(
-        `Running FiLMeR · d01 conditioning ${validationResolution} km`,
+        `Running FiLMeR · d01 conditioning ${effectiveResolution} km`,
       );
       const result = await session.run(
         input,
         validationManifest.domainId,
         new Date(validationManifest.validTime),
-        validationResolution,
+        effectiveResolution,
       );
       const metrics = verificationMetrics(
-        result.physical,
-        target,
-        validationManifest.variables,
+        deriveDisplayFields(result.physical),
+        deriveDisplayFields(target),
+        VARIABLE_VISUALS.map(({ shortName, sourceUnit }) => ({
+          name: shortName,
+          unit: sourceUnit,
+        })),
       );
       publishFrame(
         {
@@ -596,7 +641,7 @@ export default function App() {
       setComparisonMetrics(metrics);
       setComparisonView("prediction");
       setValidationParity(
-        validationResolution === 27
+        effectiveResolution === 27
           ? parityMetrics(result.physical, pythonPrediction)
           : null,
       );
@@ -608,9 +653,9 @@ export default function App() {
       });
       setRuntimeState("success");
       setCurrentAction(
-        validationResolution === 27
-          ? `Held-out WRF comparison complete · ${result.elapsedMilliseconds.toFixed(1)} ms`
-          : `${validationResolution} km conditioning probe complete · fixed 99 × 99 output`,
+        effectiveResolution === 27
+          ? `Cached demo complete · WRF comparison ready · ${result.elapsedMilliseconds.toFixed(1)} ms`
+          : `${effectiveResolution} km conditioning probe complete · fixed 99 × 99 output`,
       );
     } catch (verificationError) {
       setRuntimeState("error");
@@ -691,7 +736,10 @@ export default function App() {
   }
 
   async function runLiveGfs() {
-    beginRun("Validating requested NOAA GFS cycle", "live");
+    beginRun(
+      `Validating requested ${gfsProvider.toUpperCase()} GFS cycle`,
+      "live",
+    );
     setGfsProgress(null);
     setGfsFrameIndex(0);
     setGfsDownloadedBytes(0);
@@ -737,6 +785,7 @@ export default function App() {
           frameBytes = next.totalBytes;
           progressForFrame(next);
         },
+        gfsProvider,
       );
       accountedBytes += frameBytes;
       frameNumber += 1;
@@ -744,7 +793,7 @@ export default function App() {
       let current = await fetchGfsFrame(cycle, 0, (next) => {
         frameBytes = next.totalBytes;
         progressForFrame(next);
-      });
+      }, gfsProvider);
       accountedBytes += frameBytes;
       frameNumber += 1;
       const timings: number[] = [];
@@ -788,6 +837,7 @@ export default function App() {
               frameBytes = next.totalBytes;
               progressForFrame(next);
             },
+            gfsProvider,
           );
           accountedBytes += frameBytes;
           frameNumber += 1;
@@ -854,15 +904,16 @@ export default function App() {
     let maximum = Number.NEGATIVE_INFINITY;
     let sum = 0;
     for (let index = start; index < end; index += 1) {
-      minimum = Math.min(minimum, displayedField[index]);
-      maximum = Math.max(maximum, displayedField[index]);
-      sum += displayedField[index];
+      const value = displayValue(variableIndex, displayedField[index]);
+      minimum = Math.min(minimum, value);
+      maximum = Math.max(maximum, value);
+      sum += value;
     }
     return {
       minimum,
       maximum,
       mean: sum / (99 * 99),
-      unit: metadata.targets.units[variableIndex],
+      unit: VARIABLE_VISUALS[variableIndex].displayUnit,
     };
   }, [displayedField, variableIndex]);
   const selectedVerification = comparisonMetrics?.[variableIndex] ?? null;
@@ -969,7 +1020,7 @@ export default function App() {
         <div>
           <span>GFS cycle</span>
           <strong>{gfsCycle.replace("T", " ")}</strong>
-          <small>UTC</small>
+          <small>{gfsProvider.toUpperCase()} · UTC</small>
         </div>
         <div>
           <span>product</span>
@@ -1004,15 +1055,13 @@ export default function App() {
             <div>
               <p className="eyebrow">Operational scenario explorer</p>
               <h1 className="mt-3 max-w-[20ch] text-3xl font-semibold leading-[1] tracking-[-0.045em] md:text-5xl">
-                GFS forcing to regional fields, in this browser.
+                Regional weather fields from GFS.
               </h1>
             </div>
             <div className="self-end border-t border-stone-500/40 pt-4">
               <p className="max-w-[46ch] text-sm leading-relaxed text-stone-600">
-                ONNX Runtime Web executes the trained FiLMeR network locally.
-                The fp32 WebAssembly path is parity-verified; WebGPU remains an
-                experimental accelerator. Forecast semantics remain
-                conditional on a complete 3-hourly GFS sequence.
+                Start with a verified example, or choose NOAA/UCAR inputs.
+                FiLMeR runs locally.
               </p>
             </div>
           </div>
@@ -1154,7 +1203,12 @@ export default function App() {
             values={displayedField}
             variableIndex={variableIndex}
             domainId={domainId}
-            unit={metadata.targets.units[variableIndex]}
+            unit={VARIABLE_VISUALS[variableIndex].displayUnit}
+            scaleValues={
+              comparisonView === "difference"
+                ? null
+                : referenceDisplayField
+            }
             mode={
               comparisonView === "difference" ? "difference" : "field"
             }
@@ -1208,22 +1262,31 @@ export default function App() {
                 <div>
                   <span>mean bias</span>
                   <strong>
-                    {selectedVerification.bias.toPrecision(4)}{" "}
-                    {selectedVerification.unit}
+                    {displayValue(
+                      variableIndex,
+                      selectedVerification.bias,
+                    ).toPrecision(4)}{" "}
+                    {VARIABLE_VISUALS[variableIndex].displayUnit}
                   </strong>
                 </div>
                 <div>
                   <span>MAE</span>
                   <strong>
-                    {selectedVerification.mae.toPrecision(4)}{" "}
-                    {selectedVerification.unit}
+                    {displayValue(
+                      variableIndex,
+                      selectedVerification.mae,
+                    ).toPrecision(4)}{" "}
+                    {VARIABLE_VISUALS[variableIndex].displayUnit}
                   </strong>
                 </div>
                 <div>
                   <span>RMSE</span>
                   <strong>
-                    {selectedVerification.rmse.toPrecision(4)}{" "}
-                    {selectedVerification.unit}
+                    {displayValue(
+                      variableIndex,
+                      selectedVerification.rmse,
+                    ).toPrecision(4)}{" "}
+                    {VARIABLE_VISUALS[variableIndex].displayUnit}
                   </strong>
                 </div>
               </div>
@@ -1249,10 +1312,15 @@ export default function App() {
                         onClick={() => setVariableIndex(index)}
                       >
                         <td>{metric.variable}</td>
-                        <td>{metric.bias.toPrecision(4)}</td>
-                        <td>{metric.mae.toPrecision(4)}</td>
                         <td>
-                          {metric.rmse.toPrecision(4)} {metric.unit}
+                          {displayValue(index, metric.bias).toPrecision(4)}
+                        </td>
+                        <td>
+                          {displayValue(index, metric.mae).toPrecision(4)}
+                        </td>
+                        <td>
+                          {displayValue(index, metric.rmse).toPrecision(4)}{" "}
+                          {VARIABLE_VISUALS[index].displayUnit}
                         </td>
                       </tr>
                     ))}
@@ -1271,17 +1339,76 @@ export default function App() {
           initial={{ opacity: 0, x: 18 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ type: "spring", stiffness: 100, damping: 20, delay: 0.08 }}
-          className="divide-y divide-stone-400/30"
+          className="order-first divide-y divide-stone-400/30 lg:order-none"
         >
+          <section className="quick-start-panel p-5 md:p-8">
+            <div className="quick-start-heading">
+              <div>
+                <p className="eyebrow">Start here</p>
+                <h2>See a verified prediction now</h2>
+              </div>
+              <span>cached · no GFS wait</span>
+            </div>
+            <p>
+              Runs the released checkpoint on a fixed training-pipeline GFS
+              pair, then opens the matching WRF target and error maps.
+            </p>
+            <button
+              className="demo-button"
+              disabled={
+                !validationManifest ||
+                runtimeState === "loading" ||
+                runtimeState === "running"
+              }
+              onClick={() => {
+                setValidationResolution(27);
+                void runHeldOutVerification(27);
+              }}
+              type="button"
+            >
+              <span>
+                {runtimeState === "loading" && runKind === "validation"
+                  ? "Loading verified model…"
+                  : runtimeState === "running" && runKind === "validation"
+                    ? "Running cached prediction…"
+                    : "Run default prediction"}
+              </span>
+              <Lightning size={20} weight="fill" />
+            </button>
+            <div className="source-audit-strip">
+              <div>
+                <span>UCAR ↔ NOAA audit</span>
+                <strong>
+                  {gfsSourceAudit.summary.identicalRecords}/
+                  {gfsSourceAudit.summary.totalRecords} exact
+                </strong>
+              </div>
+              <div>
+                <span>provider input Δ</span>
+                <strong>
+                  {gfsSourceAudit.summary.providerInducedInputMaxAbsDifference}
+                </strong>
+              </div>
+              <InfoTip label="What the UCAR and NOAA comparison proves">
+                The 40 FiLMeR predictor records in the audited 11 May 2024
+                f000/f003 pair were byte-identical across UCAR GDEX and NOAA.
+                This isolates provider effects; it does not measure temporal
+                shift or forecast skill.
+              </InfoTip>
+            </div>
+          </section>
+
           <section className="p-5 md:p-8">
             <div className="section-heading">
               <MapPin size={18} weight="bold" />
               <h2>Trained geography</h2>
+              <InfoTip label="About supported geography">
+                The released checkpoint was trained on India d01 and three 9
+                km nested domains. New locations need a compatible geogrid and
+                held-out validation.
+              </InfoTip>
             </div>
-            <p className="mt-2 text-sm leading-relaxed text-stone-600">
-              Choose one of the four domains present in training. The
-              checkpoint is not validated for arbitrary coordinates.
-            </p>
+            <p className="section-lede">Choose a domain seen during training.</p>
             <div className="mt-5 grid grid-cols-2 gap-2">
               {metadata.domains.map((domain) => (
                 <DomainButton
@@ -1299,22 +1426,11 @@ export default function App() {
               <NavigationArrow size={18} weight="bold" />
               <div>
                 <p className="text-xs font-semibold">
-                  Resolution-conditioned by design
+                  Multi-resolution, within evidence
                 </p>
-                <p className="mt-1 text-[11px] leading-relaxed text-stone-600">
-                  Resolution is a first-class model input: the same checkpoint
-                  learned 9 km and 27 km domains. The 1–54 km control below
-                  exposes FiLMeR&apos;s multi-resolution hypothesis for direct
-                  sensitivity testing.
-                </p>
-                <p className="mt-2 text-[11px] leading-relaxed text-stone-600">
-                  <strong>Validation boundary:</strong> off-training values do
-                  not create new spatial information; output remains 99 × 99.
-                  Arbitrary locations also need a new geogrid and supervision.
-                </p>
-                <p className="mt-2 font-mono text-[10px] text-[#7f3d20]">
-                  Needs new geogrid → WRF supervision → retraining/transfer test
-                  → held-out validation
+                <p className="mt-1 text-xs leading-relaxed text-stone-600">
+                  One checkpoint learned 9 km and 27 km domains. Other values
+                  remain experiments; the output is always 99 × 99.
                 </p>
               </div>
             </div>
@@ -1324,6 +1440,11 @@ export default function App() {
             <div className="section-heading">
               <Gauge size={18} weight="bold" />
               <h2>Conditional horizon</h2>
+              <InfoTip label="What conditional horizon means">
+                Each 3-hour output uses two GFS states. FiLMeR does not feed
+                its output back into itself, so a 96-hour product requires a
+                complete GFS trajectory.
+              </InfoTip>
             </div>
             <div className="mt-5 grid grid-cols-[1fr_auto] gap-4">
               <label className="text-sm font-medium" htmlFor="horizon">
@@ -1373,21 +1494,36 @@ export default function App() {
             <div className="mt-4 flex items-start gap-3 text-xs leading-relaxed text-stone-600">
               <Warning className="mt-0.5 shrink-0 text-[#a6552c]" size={16} />
               <p>
-                A {horizon}-hour request needs GFS at leads −3 through +
-                {requirements.lastGfsLeadHours} h. FiLMeR outputs cannot be fed
-                back as GFS state, so this is conditional downscaling, not a
-                standalone autoregressive forecast.
+                Needs GFS leads −3 to +{requirements.lastGfsLeadHours} h; this
+                is conditional downscaling, not an autonomous forecast.
               </p>
             </div>
             <div className="mt-5 border-t border-stone-400/40 pt-5">
-              <label className="block text-sm font-medium" htmlFor="gfs-cycle">
-                Operational GFS cycle
+              <div className="control-label">
+                <label htmlFor="gfs-source">GFS source</label>
+                <InfoTip label="About GFS data sources">
+                  NOAA is the operational default. UCAR GDEX is the archive
+                  used by the training workflow; because it has no index, the
+                  matching NOAA index locates byte ranges in the UCAR file.
+                </InfoTip>
+              </div>
+              <select
+                className="control mt-2"
+                id="gfs-source"
+                onChange={(event) =>
+                  setGfsProvider(event.target.value as GfsProvider)
+                }
+                value={gfsProvider}
+              >
+                <option value="noaa">NOAA · operational mirror</option>
+                <option value="ucar">UCAR GDEX · training-source archive</option>
+              </select>
+              <label
+                className="mt-4 block text-sm font-medium"
+                htmlFor="gfs-cycle"
+              >
+                Cycle (UTC)
               </label>
-              <p className="mt-1 text-xs leading-relaxed text-stone-500">
-                Direct CORS-safe byte-range reads from NOAA’s public Google
-                Cloud mirror. Only the checkpoint’s 20 GRIB records are
-                downloaded, decoded, and cropped locally.
-              </p>
               <input
                 id="gfs-cycle"
                 className="control mt-3"
@@ -1397,7 +1533,7 @@ export default function App() {
                 onChange={(event) => setGfsCycle(event.target.value)}
               />
               <button
-                className="sequence-button mt-3"
+                className="primary-live-button mt-3"
                 disabled={
                   runtimeState === "loading" || runtimeState === "running"
                 }
@@ -1412,7 +1548,7 @@ export default function App() {
                       )}/${requirements.gfsFrames} · ${
                         gfsProgress.completedFields
                       }/20 fields`
-                    : `Fetch NOAA GFS & run ${horizon} h`}
+                    : `Fetch ${gfsProvider.toUpperCase()} GFS & run ${horizon} h`}
                 </span>
                 <CloudArrowDown size={18} weight="bold" />
               </button>
@@ -1441,14 +1577,27 @@ export default function App() {
                   </div>
                 </div>
               ) : null}
-              <p className="mt-3 text-[11px] leading-relaxed text-stone-500">
-                Static-only tradeoff: record ranges avoid 500 MB global files,
-                but NOAA GRIB records are still global fields. A 96 h run can
-                transfer hundreds of MB; a regional subset proxy is the next
-                production optimization.
+              <p className="source-note">
+                {gfsProvider === "ucar"
+                  ? "Archive mode. UCAR can lag current cycles; the app stops if its byte ranges do not decode as the matching NCEP product."
+                  : "Operational default. Only 20 required GRIB records are range-read, decoded, and cropped in-browser."}
               </p>
+              {gfsProvider === "ucar" ? (
+                <button
+                  className="archive-preset-button"
+                  onClick={() => {
+                    setGfsCycle("2024-05-11T00:00");
+                    setHorizon(3);
+                  }}
+                  type="button"
+                >
+                  Use 11 May 2024 archive cycle · 3 h
+                </button>
+              ) : null}
             </div>
-            <div className="mt-5 border-t border-stone-400/40 pt-5">
+            <details className="advanced-panel mt-5">
+              <summary>Use a prepared trajectory bundle</summary>
+              <div className="pt-4">
               <label
                 className="block text-sm font-medium"
                 htmlFor="sequence-bundle"
@@ -1491,14 +1640,17 @@ export default function App() {
                   {String(sequenceBundle.manifest.domainId).padStart(2, "0")}
                 </p>
               ) : null}
-            </div>
+              </div>
+            </details>
           </section>
 
-          <section className="p-5 md:p-8">
-            <div className="section-heading">
+          <details className="aside-details">
+            <summary>
               <Cpu size={18} weight="bold" />
-              <h2>Local execution</h2>
-            </div>
+              <span>Runtime & advanced tools</span>
+              <small>verified WASM default</small>
+            </summary>
+            <div className="p-5 md:p-8">
             <label className="mt-5 block text-sm font-medium" htmlFor="backend">
               Runtime backend
             </label>
@@ -1551,30 +1703,33 @@ export default function App() {
               </div>
             ) : null}
 
-            <button
-              className="run-button mt-5"
-              disabled={
-                runtimeState === "loading" || runtimeState === "running"
-              }
-              onClick={runParityStep}
-              type="button"
-            >
-              <span>
-                {runtimeState === "loading"
-                  ? "Loading verified model"
-                  : runtimeState === "running"
-                    ? "Running FiLMeR"
-                    : "Run numerical parity fixture"}
-              </span>
-              {runtimeState === "success" ? (
-                <CheckCircle size={18} weight="bold" />
-              ) : runtimeState === "loading" ? (
-                <CloudArrowDown size={18} weight="bold" />
-              ) : (
-                <ArrowRight size={18} weight="bold" />
-              )}
-            </button>
-            <div className="verification-card">
+            <details className="advanced-panel mt-5">
+              <summary>Scientific verification & sensitivity tools</summary>
+              <div className="pt-4">
+                <button
+                  className="run-button"
+                  disabled={
+                    runtimeState === "loading" || runtimeState === "running"
+                  }
+                  onClick={runParityStep}
+                  type="button"
+                >
+                  <span>
+                    {runtimeState === "loading"
+                      ? "Loading verified model"
+                      : runtimeState === "running"
+                        ? "Running FiLMeR"
+                        : "Run numerical parity fixture"}
+                  </span>
+                  {runtimeState === "success" ? (
+                    <CheckCircle size={18} weight="bold" />
+                  ) : runtimeState === "loading" ? (
+                    <CloudArrowDown size={18} weight="bold" />
+                  ) : (
+                    <ArrowRight size={18} weight="bold" />
+                  )}
+                </button>
+                <div className="verification-card">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-xs font-semibold">
@@ -1635,7 +1790,7 @@ export default function App() {
                   runtimeState === "loading" ||
                   runtimeState === "running"
                 }
-                onClick={runHeldOutVerification}
+                onClick={() => void runHeldOutVerification()}
                 type="button"
               >
                 <span>
@@ -1646,32 +1801,87 @@ export default function App() {
                 <Pulse size={18} weight="bold" />
               </button>
             </div>
-            <button
-              className="sequence-button mt-2"
-              disabled={
-                !sequenceBundle ||
-                runtimeState === "loading" ||
-                runtimeState === "running"
-              }
-              onClick={runSequence}
-              type="button"
-            >
-              <span>
-                {runtimeState === "running" && sequenceBundle
-                  ? `Sequence ${sequenceProgress}/${sequenceBundle.manifest.outputTimes.length}`
-                  : sequenceBundle
-                    ? `Run ${sequenceBundle.manifest.outputTimes.length}-step bundle`
-                    : "Choose a sequence bundle"}
-              </span>
-              <Gauge size={18} weight="bold" />
-            </button>
-            {error ? (
-              <p className="mt-3 border-l-2 border-[#a6552c] pl-3 text-xs leading-relaxed text-[#7f3d20]">
-                {error}
-              </p>
-            ) : null}
-          </section>
+                <button
+                  className="sequence-button mt-2"
+                  disabled={
+                    !sequenceBundle ||
+                    runtimeState === "loading" ||
+                    runtimeState === "running"
+                  }
+                  onClick={runSequence}
+                  type="button"
+                >
+                  <span>
+                    {runtimeState === "running" && sequenceBundle
+                      ? `Sequence ${sequenceProgress}/${sequenceBundle.manifest.outputTimes.length}`
+                      : sequenceBundle
+                        ? `Run ${sequenceBundle.manifest.outputTimes.length}-step bundle`
+                        : "Choose a sequence bundle"}
+                  </span>
+                  <Gauge size={18} weight="bold" />
+                </button>
+              </div>
+            </details>
+            </div>
+          </details>
+          {error ? (
+            <p className="m-5 border-l-2 border-[#a6552c] pl-3 text-xs leading-relaxed text-[#7f3d20] md:m-8">
+              {error}
+            </p>
+          ) : null}
         </motion.aside>
+      </section>
+
+      <details className="workspace-details mx-auto max-w-[1400px]">
+        <summary>
+          <div>
+            <span>Evidence & run details</span>
+            <strong>
+              {runtimeState === "running" || runtimeState === "loading"
+                ? currentAction
+                : comparisonMetrics
+                  ? "WRF metrics ready"
+                  : `${gfsSourceAudit.summary.identicalRecords}/${gfsSourceAudit.summary.totalRecords} UCAR↔NOAA records exact`}
+            </strong>
+          </div>
+          <span className={`workspace-status workspace-status-${runtimeState}`}>
+            {runtimeState}
+          </span>
+        </summary>
+        <div className="workspace-details-body">
+      <section
+        aria-label="Scientific alignment checks"
+        className="science-evidence"
+      >
+        <div className="science-evidence-heading">
+          <p className="eyebrow">Scientific alignment</p>
+          <h2>What now matches the paper—and what is actually verified</h2>
+        </div>
+        <div>
+          <span>Rendering</span>
+          <strong>Paper palettes · north-up</strong>
+          <p>
+            Variable-specific Matplotlib palettes and{" "}
+            <code>origin=&apos;lower&apos;</code>; PSFC in hPa plus derived
+            wind speed and RH2.
+          </p>
+        </div>
+        <div>
+          <span>Provider equivalence</span>
+          <strong>40 / 40 records exact</strong>
+          <p>
+            {formatBytes(gfsSourceAudit.summary.selectedBytes)} SHA-256 audited
+            across UCAR and NOAA for one same-cycle pair.
+          </p>
+        </div>
+        <div>
+          <span>Error evidence</span>
+          <strong>Held-out WRF case</strong>
+          <p>
+            Metrics for six model outputs and two derived diagnostics. WRF is
+            supervision—not an observation or aggregate skill result.
+          </p>
+        </div>
       </section>
 
       <section className="verification-results mx-auto max-w-[1400px] border-x border-t border-stone-400/30">
@@ -1704,18 +1914,25 @@ export default function App() {
                   type="button"
                 >
                   <span>
-                    {metric.variable} · {metric.unit}
+                    {metric.variable} ·{" "}
+                    {VARIABLE_VISUALS[index].displayUnit}
                   </span>
-                  <strong>{metric.rmse.toPrecision(4)}</strong>
+                  <strong>
+                    {displayValue(index, metric.rmse).toPrecision(4)}
+                  </strong>
                   <small>RMSE</small>
                   <dl>
                     <div>
                       <dt>bias</dt>
-                      <dd>{metric.bias.toPrecision(3)}</dd>
+                      <dd>
+                        {displayValue(index, metric.bias).toPrecision(3)}
+                      </dd>
                     </div>
                     <div>
                       <dt>MAE</dt>
-                      <dd>{metric.mae.toPrecision(3)}</dd>
+                      <dd>
+                        {displayValue(index, metric.mae).toPrecision(3)}
+                      </dd>
                     </div>
                   </dl>
                 </button>
@@ -1741,8 +1958,8 @@ export default function App() {
         ) : (
           <div className="verification-empty">
             <p>
-              Run the held-out case in Local execution to unlock all six
-              metrics and the FiLMeR / WRF / error map switcher.
+              Run the default prediction above to unlock all six metrics and
+              the FiLMeR / WRF / error map switcher.
             </p>
             <span>
               Live future cycles remain “verification pending” until a
@@ -1978,8 +2195,8 @@ export default function App() {
                     No run has started
                   </p>
                   <p className="mt-2 max-w-[42ch] text-xs leading-relaxed text-stone-500">
-                    Choose a trained domain, GFS cycle, horizon, and runtime;
-                    then start an operational or parity run.
+                    Start with the cached prediction, or choose a domain, GFS
+                    source, cycle, and horizon for an archive/operational run.
                   </p>
                 </div>
               </div>
@@ -2022,6 +2239,8 @@ export default function App() {
           </div>
         </div>
       </section>
+        </div>
+      </details>
 
       <footer className="mx-auto flex max-w-[1400px] flex-col gap-3 px-4 py-8 text-xs text-stone-500 md:flex-row md:items-center md:justify-between md:px-8">
         <p>

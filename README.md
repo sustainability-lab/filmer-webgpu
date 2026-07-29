@@ -9,14 +9,19 @@ and exposes the fp16 WebGPU path explicitly as experimental.
 ## What it does
 
 - Runs the 39,768,627-parameter checkpoint entirely in the browser.
-- Downloads operational NOAA GFS inputs on demand from the public Google Cloud
-  mirror using CORS-safe byte ranges.
+- Offers an instant cached 2025-01-01 prediction/WRF comparison with no GFS
+  download, plus on-demand NOAA and UCAR GDEX inputs.
 - Decodes GRIB2 locally and reproduces the training crop, channel order,
   normalization, projection vector, and physical-unit reconstruction.
 - Supports only the four trained domains: d01 at 27 km and d02–d04 at 9 km.
 - Produces 99×99 fields for T2, U10, V10, Q2, PSFC, and precipitation.
-- Shows a units-aware color bar, drag/wheel/touch map navigation, and
-  play/pause/time scrubbing for multi-step runs.
+- Displays 10 m wind speed and 2 m relative humidity as derived fields using
+  the same equations and palettes as the paper plotting script; downloaded raw
+  output remains the six model channels.
+- Uses the paper plotting script’s variable-specific palettes (`viridis`,
+  `coolwarm`, `YlGnBu`, and `Blues`), `origin="lower"` orientation, and hPa
+  pressure display; includes units-aware color bars, drag/wheel/touch map
+  navigation, and play/pause/time scrubbing.
 - Runs a browser-side comparison against an exact held-out WRF target with
   bias, MAE, RMSE, and prediction/reference/error views.
 - Exports a ZIP with raw float32 fields, units, forecast metadata, and 2-D
@@ -49,11 +54,33 @@ account directly; a read-only hash through an isolated container confirmed
 that it is byte-for-byte identical to the published d01 source geogrid:
 `090e9033d24d7c96f050f505d1a38ebba872d52fb82bcade841665c9a6ff0918`.
 
-For a static site, the Google Cloud record-range path is the only service-free
-operational route we validated. It avoids each ~500 MB global GRIB file but the
-selected records are still global fields, so a 96-hour run can transfer
-hundreds of MB. A production regional-subset proxy would reduce this
-substantially.
+NOAA’s Google Cloud mirror is the operational default. UCAR GDEX is also
+selectable as the training-source archive. UCAR supports CORS byte ranges but
+does not publish a GRIB index, so the app uses the matching NOAA `.idx` only to
+locate records and downloads the data bytes from UCAR. NOAA ranges are read
+four at a time; UCAR ranges are deliberately serialized in accordance with
+GDEX’s warning against simultaneous downloads.
+
+We audited all 40 predictor records in the UCAR/NOAA 2024-05-11 00Z
+`f000/f003` pair: all 37,535,367 selected bytes were record-for-record
+SHA-256 identical. Thus provider choice induces exactly zero input/output
+difference for that audited same-cycle pair. This does **not** measure temporal
+distribution shift or live forecast error; those require time-matched WRF or
+observations. The full evidence is in
+`reports/gfs-source-equivalence-20240511T00Z.json` and can be regenerated with:
+
+```bash
+node scripts/audit_gfs_source_equivalence.mjs
+```
+
+The browser UCAR smoke test then ran a 3-hour archive product from two GDEX
+frames successfully: 35.7 MB transferred, 68.2 s end to end, and 919.6 ms model
+compute on the tested Chromium/WASM session. Scope and inputs are recorded in
+`reports/ucar-browser-smoke-20240511T00Z.json`.
+
+Record ranges avoid each ~500 MB global GRIB file, but the selected records are
+still global fields, so a 96-hour run can transfer hundreds of MB. A production
+regional-subset proxy would reduce this substantially.
 
 See [DATA_PIPELINE.md](docs/DATA_PIPELINE.md) for exact acquisition semantics.
 
@@ -88,7 +115,7 @@ Full results are in `reports/resolution-conditioning-probe.json`.
 
 ## Held-out WRF comparison
 
-The app includes one exact `sample_test` case:
+**Run default prediction** loads one exact cached `sample_test` case:
 
 ```text
 GFS inputs   2025-01-01 00Z and 03Z

@@ -219,3 +219,33 @@ describe("held-out WRF verification fixture", () => {
     });
   });
 });
+
+describe("UCAR and NOAA source-equivalence evidence", () => {
+  it("records a complete byte-level audit of the two-frame model input", () => {
+    const report = JSON.parse(
+      readFileSync(
+        resolve("reports/gfs-source-equivalence-20240511T00Z.json"),
+        "utf8",
+      ),
+    ) as {
+      summary: {
+        allIdentical: boolean;
+        identicalRecords: number;
+        totalRecords: number;
+        providerInducedInputMaxAbsDifference: number;
+        providerInducedOutputMaxAbsDifference: number;
+      };
+      frames: Array<{ records: Array<{ identical: boolean }> }>;
+    };
+    expect(report.summary).toMatchObject({
+      allIdentical: true,
+      identicalRecords: 40,
+      totalRecords: 40,
+      providerInducedInputMaxAbsDifference: 0,
+      providerInducedOutputMaxAbsDifference: 0,
+    });
+    const records = report.frames.flatMap((frame) => frame.records);
+    expect(records).toHaveLength(40);
+    expect(records.every((record) => record.identical)).toBe(true);
+  });
+});

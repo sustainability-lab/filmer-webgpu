@@ -8,7 +8,12 @@ import {
 } from "react";
 import { geoMercator, geoPath } from "d3-geo";
 import type { Feature, FeatureCollection, Geometry } from "geojson";
-import { metadata, OUTPUT_CELLS, domainById } from "../lib/preprocess";
+import { metadata, domainById } from "../lib/preprocess";
+import {
+  VARIABLE_VISUALS,
+  createRasterPixels,
+  paletteCssGradient,
+} from "../lib/visualization";
 
 type Props = {
   values: Float32Array | null;
@@ -16,6 +21,7 @@ type Props = {
   domainId: number;
   unit: string;
   mode?: "field" | "difference";
+  scaleValues?: Float32Array | null;
 };
 
 type ViewTransform = {
@@ -59,74 +65,25 @@ function d3CompatibleWinding(
   return feature;
 }
 
-function sequentialColor(value: number): [number, number, number] {
-  return [
-    238 - Math.round(value * 189),
-    232 - Math.round(value * 122),
-    214 - Math.round(value * 42),
-  ];
-}
-
-function differenceColor(value: number): [number, number, number] {
-  if (value < 0.5) {
-    const fraction = value * 2;
-    return [
-      45 + Math.round(210 * fraction),
-      104 + Math.round(147 * fraction),
-      155 + Math.round(96 * fraction),
-    ];
-  }
-  const fraction = (value - 0.5) * 2;
-  return [
-    255 - Math.round(75 * fraction),
-    251 - Math.round(188 * fraction),
-    251 - Math.round(195 * fraction),
-  ];
-}
-
 export function rasterVisualization(
   values: Float32Array,
   variableIndex: number,
   mode: "field" | "difference",
+  scaleValues?: Float32Array | null,
 ) {
-  const offset = variableIndex * OUTPUT_CELLS;
-  const raw = Array.from(values.slice(offset, offset + OUTPUT_CELLS));
-  const sorted = [...raw].sort((left, right) => left - right);
-  let low: number;
-  let high: number;
-  if (mode === "difference") {
-    const magnitudes = raw
-      .map((value) => Math.abs(value))
-      .sort((left, right) => left - right);
-    const maximum =
-      magnitudes[Math.floor(magnitudes.length * 0.98)] ||
-      magnitudes.at(-1) ||
-      1;
-    low = -maximum;
-    high = maximum;
-  } else {
-    low = sorted[Math.floor(sorted.length * 0.02)];
-    high = sorted[Math.floor(sorted.length * 0.98)];
-  }
-  const span = high > low ? high - low : 1;
+  const { pixels, low, high } = createRasterPixels(
+    values,
+    variableIndex,
+    mode,
+    scaleValues,
+  );
   const canvas = document.createElement("canvas");
   canvas.width = 99;
   canvas.height = 99;
   const context = canvas.getContext("2d");
   if (!context) return { url: "", low, high };
   const image = context.createImageData(99, 99);
-  for (let index = 0; index < OUTPUT_CELLS; index += 1) {
-    const normalized = Math.max(0, Math.min(1, (raw[index] - low) / span));
-    const [red, green, blue] =
-      mode === "difference"
-        ? differenceColor(normalized)
-        : sequentialColor(normalized);
-    const destination = index * 4;
-    image.data[destination] = red;
-    image.data[destination + 1] = green;
-    image.data[destination + 2] = blue;
-    image.data[destination + 3] = 224;
-  }
+  image.data.set(pixels);
   context.putImageData(image, 0, 0);
   return { url: canvas.toDataURL("image/png"), low, high };
 }
@@ -143,6 +100,7 @@ export function ForecastMap({
   domainId,
   unit,
   mode = "field",
+  scaleValues = null,
 }: Props) {
   const [geometry, setGeometry] = useState<Feature<Geometry> | null>(null);
   const [boundaryError, setBoundaryError] = useState<string | null>(null);
@@ -205,15 +163,16 @@ export function ForecastMap({
   );
   const path = projection ? geoPath(projection) : null;
   const selected = domainById(domainId);
+  const visual = VARIABLE_VISUALS[variableIndex];
   const [latMin, lonMin, latMax, lonMax] = selected.paperBounds;
   const northWest = projection?.([lonMin, latMax]) ?? [0, 0];
   const southEast = projection?.([lonMax, latMin]) ?? [0, 0];
   const raster = useMemo(
     () =>
       values
-        ? rasterVisualization(values, variableIndex, mode)
+        ? rasterVisualization(values, variableIndex, mode, scaleValues)
         : { url: "", low: 0, high: 0 },
-    [values, variableIndex, mode],
+    [values, variableIndex, mode, scaleValues],
   );
 
   function zoomAt(nextScale: number, pointX = 360, pointY = 280) {
@@ -405,13 +364,22 @@ export function ForecastMap({
       {values ? (
         <div className="map-colorbar" aria-label={`Color scale in ${unit}`}>
           <div className="map-colorbar-heading">
-            <span>{mode === "difference" ? "FiLMeR − WRF" : "field scale"}</span>
+            <span>
+              {mode === "difference"
+                ? "FiLMeR − WRF · coolwarm"
+                : `${visual.shortName} · ${visual.palette}`}
+            </span>
             <strong>{unit}</strong>
           </div>
           <div
             className={`map-colorbar-gradient ${
               mode === "difference" ? "map-colorbar-difference" : ""
             }`}
+            style={{
+              background: paletteCssGradient(
+                mode === "difference" ? "coolwarm" : visual.palette,
+              ),
+            }}
           />
           <div className="map-colorbar-labels">
             <span>{formatScaleValue(raster.low, unit)}</span>
@@ -423,6 +391,14 @@ export function ForecastMap({
 
       <div className="map-domain-badge">
         {selected.code.toUpperCase()} · {selected.resolutionKm} KM · 99 × 99
+      </div>
+      <div
+        aria-label="North is up. Tensor row zero is rendered at the southern edge, matching the paper's origin lower setting."
+        className="map-orientation"
+        title="Verified against the paper plotting code: origin='lower'. Tensor row 0 is south; row 98 is north."
+      >
+        <strong>N ↑</strong>
+        <span>origin: lower</span>
       </div>
       <a
         className="map-attribution"

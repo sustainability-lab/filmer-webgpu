@@ -1,0 +1,575 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-29T04:22:45.835Z",
+  "cycle": "2024-05-11T00:00:00Z",
+  "forecastHours": [
+    0,
+    3
+  ],
+  "product": "NCEP GFS 0.25-degree pgrb2",
+  "providers": {
+    "trainingArchive": "UCAR GDEX dataset d084001",
+    "operationalMirror": "NOAA global-forecast-system Google Cloud bucket"
+  },
+  "method": "NOAA .idx byte ranges were applied to both provider files; SHA-256 was compared for every GRIB record consumed by FiLMeR.",
+  "summary": {
+    "selectedBytes": 37535367,
+    "identicalRecords": 40,
+    "totalRecords": 40,
+    "allIdentical": true,
+    "providerInducedInputMaxAbsDifference": 0,
+    "providerInducedOutputMaxAbsDifference": 0
+  },
+  "interpretation": {
+    "supported": "For this audited same-cycle input pair, UCAR and NOAA deliver byte-identical FiLMeR predictor records. There is no provider-induced model-input or output difference.",
+    "notSupported": "This does not measure temporal distribution shift, aggregate forecast skill, or future upstream product changes. Live cases still require time-matched WRF or observations for error evaluation."
+  },
+  "frames": [
+    {
+      "forecastHour": 0,
+      "urls": {
+        "noaa": "https://storage.googleapis.com/download/storage/v1/b/global-forecast-system/o/gfs.20240511%2F00%2Fatmos%2Fgfs.t00z.pgrb2.0p25.f000?alt=media",
+        "index": "https://storage.googleapis.com/download/storage/v1/b/global-forecast-system/o/gfs.20240511%2F00%2Fatmos%2Fgfs.t00z.pgrb2.0p25.f000.idx?alt=media",
+        "ucar": "https://data.gdex.ucar.edu/d084001/2024/20240511/gfs.0p25.2024051100.f000.grib2"
+      },
+      "selectedBytes": 18726303,
+      "identicalRecords": 20,
+      "totalRecords": 20,
+      "records": [
+        {
+          "channel": "T2",
+          "gribKey": "TMP:2 m above ground",
+          "record": 580,
+          "byteRange": [
+            418383721,
+            418891448
+          ],
+          "bytes": 507728,
+          "noaaSha256": "ad82bbc55f35a05ae651b81c4a2eea7ff91e9c868ae70cb9917faff31e7e4213",
+          "ucarSha256": "ad82bbc55f35a05ae651b81c4a2eea7ff91e9c868ae70cb9917faff31e7e4213",
+          "identical": true
+        },
+        {
+          "channel": "Q2",
+          "gribKey": "SPFH:2 m above ground",
+          "record": 581,
+          "byteRange": [
+            418891449,
+            420103028
+          ],
+          "bytes": 1211580,
+          "noaaSha256": "24cff120b2879eaceda58934cb08ae24d0af30105b464d34a950cfb820ec8c3b",
+          "ucarSha256": "24cff120b2879eaceda58934cb08ae24d0af30105b464d34a950cfb820ec8c3b",
+          "identical": true
+        },
+        {
+          "channel": "PSFC",
+          "gribKey": "PRES:surface",
+          "record": 561,
+          "byteRange": [
+            410099470,
+            410945105
+          ],
+          "bytes": 845636,
+          "noaaSha256": "4c5379cbf2d0a5e5614d0acab9407bac024d8111713617f7d3733201c8f11bef",
+          "ucarSha256": "4c5379cbf2d0a5e5614d0acab9407bac024d8111713617f7d3733201c8f11bef",
+          "identical": true
+        },
+        {
+          "channel": "U10",
+          "gribKey": "UGRD:10 m above ground",
+          "record": 585,
+          "byteRange": [
+            421983506,
+            422954325
+          ],
+          "bytes": 970820,
+          "noaaSha256": "b9950df615a867adddf98abd36f579fae70092ae93689580575226b88404411d",
+          "ucarSha256": "b9950df615a867adddf98abd36f579fae70092ae93689580575226b88404411d",
+          "identical": true
+        },
+        {
+          "channel": "V10",
+          "gribKey": "VGRD:10 m above ground",
+          "record": 586,
+          "byteRange": [
+            422954326,
+            423901134
+          ],
+          "bytes": 946809,
+          "noaaSha256": "c0c5ab72fdd040f816f54e3efaf80cb1ece0c4279bf2e56abd29066eac0e97bd",
+          "ucarSha256": "c0c5ab72fdd040f816f54e3efaf80cb1ece0c4279bf2e56abd29066eac0e97bd",
+          "identical": true
+        },
+        {
+          "channel": "TCC",
+          "gribKey": "TCDC:entire atmosphere",
+          "record": 611,
+          "byteRange": [
+            434776440,
+            435635572
+          ],
+          "bytes": 859133,
+          "noaaSha256": "60596494c26f62ba3241bd707c6bee00617965677c3a011ba3d13735140199de",
+          "ucarSha256": "60596494c26f62ba3241bd707c6bee00617965677c3a011ba3d13735140199de",
+          "identical": true
+        },
+        {
+          "channel": "PRATE",
+          "gribKey": "PRATE:surface",
+          "record": 589,
+          "byteRange": [
+            424454716,
+            425094829
+          ],
+          "bytes": 640114,
+          "noaaSha256": "192f07c65d8c98581972fd5a5ffb96c6455a9cea9e216d9f0f750348785352af",
+          "ucarSha256": "192f07c65d8c98581972fd5a5ffb96c6455a9cea9e216d9f0f750348785352af",
+          "identical": true
+        },
+        {
+          "channel": "T_1000",
+          "gribKey": "TMP:1000 mb",
+          "record": 542,
+          "byteRange": [
+            397889252,
+            398744524
+          ],
+          "bytes": 855273,
+          "noaaSha256": "4b7c9f0a7a6b084b579f7b61d72142ae5a51c240b417123eea6ccd8250f0437b",
+          "ucarSha256": "4b7c9f0a7a6b084b579f7b61d72142ae5a51c240b417123eea6ccd8250f0437b",
+          "identical": true
+        },
+        {
+          "channel": "T_850",
+          "gribKey": "TMP:850 mb",
+          "record": 462,
+          "byteRange": [
+            340753905,
+            341607247
+          ],
+          "bytes": 853343,
+          "noaaSha256": "e88a10531066ccf51b5ecc2f0b3d2a6f4abe57464dfc31555e6efc83c77b3c15",
+          "ucarSha256": "e88a10531066ccf51b5ecc2f0b3d2a6f4abe57464dfc31555e6efc83c77b3c15",
+          "identical": true
+        },
+        {
+          "channel": "T_700",
+          "gribKey": "TMP:700 mb",
+          "record": 414,
+          "byteRange": [
+            306956740,
+            307730902
+          ],
+          "bytes": 774163,
+          "noaaSha256": "2e77aa5c22926ac0bff5eec5e9b5600aa0d18aba9871a47a98ea0e37a6dc88fd",
+          "ucarSha256": "2e77aa5c22926ac0bff5eec5e9b5600aa0d18aba9871a47a98ea0e37a6dc88fd",
+          "identical": true
+        },
+        {
+          "channel": "T_500",
+          "gribKey": "TMP:500 mb",
+          "record": 350,
+          "byteRange": [
+            262461406,
+            263197654
+          ],
+          "bytes": 736249,
+          "noaaSha256": "5bb8a06ad00c512497904611ffb43efaccd678f82ac93f428a60b9e2f8401f3b",
+          "ucarSha256": "5bb8a06ad00c512497904611ffb43efaccd678f82ac93f428a60b9e2f8401f3b",
+          "identical": true
+        },
+        {
+          "channel": "U_850",
+          "gribKey": "UGRD:850 mb",
+          "record": 468,
+          "byteRange": [
+            346598037,
+            347549030
+          ],
+          "bytes": 950994,
+          "noaaSha256": "c8074c91624e41671b6dbe4427cbe887db1f9a9e0c0ac95e59f6b4458b927824",
+          "ucarSha256": "c8074c91624e41671b6dbe4427cbe887db1f9a9e0c0ac95e59f6b4458b927824",
+          "identical": true
+        },
+        {
+          "channel": "U_700",
+          "gribKey": "UGRD:700 mb",
+          "record": 420,
+          "byteRange": [
+            312603925,
+            313528674
+          ],
+          "bytes": 924750,
+          "noaaSha256": "2a08ce26d7d41a7166324122afe6ebe7861251b616dd5bea59e48dc5301127c2",
+          "ucarSha256": "2a08ce26d7d41a7166324122afe6ebe7861251b616dd5bea59e48dc5301127c2",
+          "identical": true
+        },
+        {
+          "channel": "U_500",
+          "gribKey": "UGRD:500 mb",
+          "record": 356,
+          "byteRange": [
+            268135774,
+            269114082
+          ],
+          "bytes": 978309,
+          "noaaSha256": "138423381c9e1e78b491713286e1dc32a411de9f5377028ee64f1a5d297d5ec5",
+          "ucarSha256": "138423381c9e1e78b491713286e1dc32a411de9f5377028ee64f1a5d297d5ec5",
+          "identical": true
+        },
+        {
+          "channel": "V_850",
+          "gribKey": "VGRD:850 mb",
+          "record": 469,
+          "byteRange": [
+            347549031,
+            348514594
+          ],
+          "bytes": 965564,
+          "noaaSha256": "641016e288c44c244ba24c31596871b4ed53cd9114abf8c2b6ce8b7a28cce45e",
+          "ucarSha256": "641016e288c44c244ba24c31596871b4ed53cd9114abf8c2b6ce8b7a28cce45e",
+          "identical": true
+        },
+        {
+          "channel": "V_700",
+          "gribKey": "VGRD:700 mb",
+          "record": 421,
+          "byteRange": [
+            313528675,
+            314454624
+          ],
+          "bytes": 925950,
+          "noaaSha256": "0616da5daa7ca61f9b6a4657967a0b0a824328f99007e7c257de52f6e02b6d3a",
+          "ucarSha256": "0616da5daa7ca61f9b6a4657967a0b0a824328f99007e7c257de52f6e02b6d3a",
+          "identical": true
+        },
+        {
+          "channel": "V_500",
+          "gribKey": "VGRD:500 mb",
+          "record": 357,
+          "byteRange": [
+            269114083,
+            270057680
+          ],
+          "bytes": 943598,
+          "noaaSha256": "1aa64074fa6c983c9b1527fed163fc45b6166a690ea37444deb36f99ca155015",
+          "ucarSha256": "1aa64074fa6c983c9b1527fed163fc45b6166a690ea37444deb36f99ca155015",
+          "identical": true
+        },
+        {
+          "channel": "Q_850",
+          "gribKey": "SPFH:850 mb",
+          "record": 465,
+          "byteRange": [
+            342936956,
+            344185098
+          ],
+          "bytes": 1248143,
+          "noaaSha256": "62c4f64d8a6c6c6ad5cc96a75e1d3b2bd7ef58f9e00122c29bf5525f732b362d",
+          "ucarSha256": "62c4f64d8a6c6c6ad5cc96a75e1d3b2bd7ef58f9e00122c29bf5525f732b362d",
+          "identical": true
+        },
+        {
+          "channel": "Q_700",
+          "gribKey": "SPFH:700 mb",
+          "record": 417,
+          "byteRange": [
+            308928403,
+            310216187
+          ],
+          "bytes": 1287785,
+          "noaaSha256": "46a9504363d66762b9f3deb7fa9156f33913f3130a8d6f014370bc9d7079e366",
+          "ucarSha256": "46a9504363d66762b9f3deb7fa9156f33913f3130a8d6f014370bc9d7079e366",
+          "identical": true
+        },
+        {
+          "channel": "Q_500",
+          "gribKey": "SPFH:500 mb",
+          "record": 353,
+          "byteRange": [
+            264464313,
+            265764674
+          ],
+          "bytes": 1300362,
+          "noaaSha256": "f0872f557590d79514e093103e04b0d03062a14833c6631c2bf199c1694f8c31",
+          "ucarSha256": "f0872f557590d79514e093103e04b0d03062a14833c6631c2bf199c1694f8c31",
+          "identical": true
+        }
+      ]
+    },
+    {
+      "forecastHour": 3,
+      "urls": {
+        "noaa": "https://storage.googleapis.com/download/storage/v1/b/global-forecast-system/o/gfs.20240511%2F00%2Fatmos%2Fgfs.t00z.pgrb2.0p25.f003?alt=media",
+        "index": "https://storage.googleapis.com/download/storage/v1/b/global-forecast-system/o/gfs.20240511%2F00%2Fatmos%2Fgfs.t00z.pgrb2.0p25.f003.idx?alt=media",
+        "ucar": "https://data.gdex.ucar.edu/d084001/2024/20240511/gfs.0p25.2024051100.f003.grib2"
+      },
+      "selectedBytes": 18809064,
+      "identicalRecords": 20,
+      "totalRecords": 20,
+      "records": [
+        {
+          "channel": "T2",
+          "gribKey": "TMP:2 m above ground",
+          "record": 581,
+          "byteRange": [
+            421893978,
+            422402851
+          ],
+          "bytes": 508874,
+          "noaaSha256": "ed5c51218a818131a5156e237b1a9d7c1478427ac6dc33e39cc5de157611ab9e",
+          "ucarSha256": "ed5c51218a818131a5156e237b1a9d7c1478427ac6dc33e39cc5de157611ab9e",
+          "identical": true
+        },
+        {
+          "channel": "Q2",
+          "gribKey": "SPFH:2 m above ground",
+          "record": 582,
+          "byteRange": [
+            422402852,
+            423616476
+          ],
+          "bytes": 1213625,
+          "noaaSha256": "77f81ccfe445c3a7a7f5122b5f33ea437f9c00fc7e49285fc21d531e66db1c4a",
+          "ucarSha256": "77f81ccfe445c3a7a7f5122b5f33ea437f9c00fc7e49285fc21d531e66db1c4a",
+          "identical": true
+        },
+        {
+          "channel": "PSFC",
+          "gribKey": "PRES:surface",
+          "record": 561,
+          "byteRange": [
+            412868303,
+            413713524
+          ],
+          "bytes": 845222,
+          "noaaSha256": "c3de9e0eabbfce7336536fa368b23ecf3059f9cb1925e23e403e58f5a4e7971f",
+          "ucarSha256": "c3de9e0eabbfce7336536fa368b23ecf3059f9cb1925e23e403e58f5a4e7971f",
+          "identical": true
+        },
+        {
+          "channel": "U10",
+          "gribKey": "UGRD:10 m above ground",
+          "record": 588,
+          "byteRange": [
+            426497705,
+            427467957
+          ],
+          "bytes": 970253,
+          "noaaSha256": "8eb5f0c75866a6f4500263d670a861409bf39b8b3d41e6f4f6e754c61b67ac4f",
+          "ucarSha256": "8eb5f0c75866a6f4500263d670a861409bf39b8b3d41e6f4f6e754c61b67ac4f",
+          "identical": true
+        },
+        {
+          "channel": "V10",
+          "gribKey": "VGRD:10 m above ground",
+          "record": 589,
+          "byteRange": [
+            427467958,
+            428414684
+          ],
+          "bytes": 946727,
+          "noaaSha256": "fb68f58cabaad948804f50112a75c56c9cf5e7bd81de2961265c5bcfa0cd92df",
+          "ucarSha256": "fb68f58cabaad948804f50112a75c56c9cf5e7bd81de2961265c5bcfa0cd92df",
+          "identical": true
+        },
+        {
+          "channel": "TCC",
+          "gribKey": "TCDC:entire atmosphere",
+          "record": 636,
+          "byteRange": [
+            449625584,
+            450473093
+          ],
+          "bytes": 847510,
+          "noaaSha256": "f9f370024a6f49e720b6fe99f015d3c3246a4a8cf099878260cfaeace0d8eab3",
+          "ucarSha256": "f9f370024a6f49e720b6fe99f015d3c3246a4a8cf099878260cfaeace0d8eab3",
+          "identical": true
+        },
+        {
+          "channel": "PRATE",
+          "gribKey": "PRATE:surface",
+          "record": 593,
+          "byteRange": [
+            429641856,
+            430290560
+          ],
+          "bytes": 648705,
+          "noaaSha256": "96404b3e7fcd4b4fd18ee10dd1594ceb38fbffdd9da4e44031c14552ad91b3f5",
+          "ucarSha256": "96404b3e7fcd4b4fd18ee10dd1594ceb38fbffdd9da4e44031c14552ad91b3f5",
+          "identical": true
+        },
+        {
+          "channel": "T_1000",
+          "gribKey": "TMP:1000 mb",
+          "record": 542,
+          "byteRange": [
+            400644856,
+            401501802
+          ],
+          "bytes": 856947,
+          "noaaSha256": "720f85eb73658b206cbae6c8a145b146431f15c02049efccab165fe87bde3c30",
+          "ucarSha256": "720f85eb73658b206cbae6c8a145b146431f15c02049efccab165fe87bde3c30",
+          "identical": true
+        },
+        {
+          "channel": "T_850",
+          "gribKey": "TMP:850 mb",
+          "record": 462,
+          "byteRange": [
+            343288204,
+            344144024
+          ],
+          "bytes": 855821,
+          "noaaSha256": "167f9976c6694a548e8a1bb8fcda374c77633e0dcec1c69c493b692f1124a7c0",
+          "ucarSha256": "167f9976c6694a548e8a1bb8fcda374c77633e0dcec1c69c493b692f1124a7c0",
+          "identical": true
+        },
+        {
+          "channel": "T_700",
+          "gribKey": "TMP:700 mb",
+          "record": 414,
+          "byteRange": [
+            309468364,
+            310241859
+          ],
+          "bytes": 773496,
+          "noaaSha256": "58142e24c9f6cb78b65e48afaf83bf34dcdf1a5d27d40e48a3e92e4132e8a50e",
+          "ucarSha256": "58142e24c9f6cb78b65e48afaf83bf34dcdf1a5d27d40e48a3e92e4132e8a50e",
+          "identical": true
+        },
+        {
+          "channel": "T_500",
+          "gribKey": "TMP:500 mb",
+          "record": 350,
+          "byteRange": [
+            265458136,
+            266194289
+          ],
+          "bytes": 736154,
+          "noaaSha256": "e36202f678c953aa1467b61304d7a1a18cf0974ebc6ba0142119f1bd45aa3597",
+          "ucarSha256": "e36202f678c953aa1467b61304d7a1a18cf0974ebc6ba0142119f1bd45aa3597",
+          "identical": true
+        },
+        {
+          "channel": "U_850",
+          "gribKey": "UGRD:850 mb",
+          "record": 468,
+          "byteRange": [
+            349271159,
+            350219575
+          ],
+          "bytes": 948417,
+          "noaaSha256": "bb48c795c6410c71eda2e3f798fbb693df025c04582a2fabc877bf7edc7fdde8",
+          "ucarSha256": "bb48c795c6410c71eda2e3f798fbb693df025c04582a2fabc877bf7edc7fdde8",
+          "identical": true
+        },
+        {
+          "channel": "U_700",
+          "gribKey": "UGRD:700 mb",
+          "record": 420,
+          "byteRange": [
+            315102570,
+            316025343
+          ],
+          "bytes": 922774,
+          "noaaSha256": "a576677c599d87e5f8840ee5cb4c37c5d618255bc38b1c9fe945e838bf4b59a0",
+          "ucarSha256": "a576677c599d87e5f8840ee5cb4c37c5d618255bc38b1c9fe945e838bf4b59a0",
+          "identical": true
+        },
+        {
+          "channel": "U_500",
+          "gribKey": "UGRD:500 mb",
+          "record": 356,
+          "byteRange": [
+            271000066,
+            271935886
+          ],
+          "bytes": 935821,
+          "noaaSha256": "fff17d6adc8bf9593f518a12de0cf687c69d060ed8759ac8208187971121cff9",
+          "ucarSha256": "fff17d6adc8bf9593f518a12de0cf687c69d060ed8759ac8208187971121cff9",
+          "identical": true
+        },
+        {
+          "channel": "V_850",
+          "gribKey": "VGRD:850 mb",
+          "record": 469,
+          "byteRange": [
+            350219576,
+            351182951
+          ],
+          "bytes": 963376,
+          "noaaSha256": "f91d6eb4142e4af23e175d782184fb0abc4eb74f173e89ff201a1998d426c712",
+          "ucarSha256": "f91d6eb4142e4af23e175d782184fb0abc4eb74f173e89ff201a1998d426c712",
+          "identical": true
+        },
+        {
+          "channel": "V_700",
+          "gribKey": "VGRD:700 mb",
+          "record": 421,
+          "byteRange": [
+            316025344,
+            316946248
+          ],
+          "bytes": 920905,
+          "noaaSha256": "05aaa6cefca7c2027330b0eb24c1f7dce9cb1df64f9df4e7d5d1c7ffe5074695",
+          "ucarSha256": "05aaa6cefca7c2027330b0eb24c1f7dce9cb1df64f9df4e7d5d1c7ffe5074695",
+          "identical": true
+        },
+        {
+          "channel": "V_500",
+          "gribKey": "VGRD:500 mb",
+          "record": 357,
+          "byteRange": [
+            271935887,
+            272875073
+          ],
+          "bytes": 939187,
+          "noaaSha256": "c9489dc29e5aadff8ede84466d3c82797bfb515b0c227097dd6764081f754c34",
+          "ucarSha256": "c9489dc29e5aadff8ede84466d3c82797bfb515b0c227097dd6764081f754c34",
+          "identical": true
+        },
+        {
+          "channel": "Q_850",
+          "gribKey": "SPFH:850 mb",
+          "record": 465,
+          "byteRange": [
+            345482535,
+            346864847
+          ],
+          "bytes": 1382313,
+          "noaaSha256": "1816ec45dc55f1f1fe7aec88d7bf9c624ff2ce2b2e97120eef22326627358c9d",
+          "ucarSha256": "1816ec45dc55f1f1fe7aec88d7bf9c624ff2ce2b2e97120eef22326627358c9d",
+          "identical": true
+        },
+        {
+          "channel": "Q_700",
+          "gribKey": "SPFH:700 mb",
+          "record": 417,
+          "byteRange": [
+            311438651,
+            312728136
+          ],
+          "bytes": 1289486,
+          "noaaSha256": "1bcc10f0e6ed52f8dd9cad451436c425b09440e1015e277d1f48422c29724f19",
+          "ucarSha256": "1bcc10f0e6ed52f8dd9cad451436c425b09440e1015e277d1f48422c29724f19",
+          "identical": true
+        },
+        {
+          "channel": "Q_500",
+          "gribKey": "SPFH:500 mb",
+          "record": 353,
+          "byteRange": [
+            267457454,
+            268760904
+          ],
+          "bytes": 1303451,
+          "noaaSha256": "06ae177bb8fc25071cb59cc0f070847b546f1058700fa4adedcca8dbe5125456",
+          "ucarSha256": "06ae177bb8fc25071cb59cc0f070847b546f1058700fa4adedcca8dbe5125456",
+          "identical": true
+        }
+      ]
+    }
+  ]
+}

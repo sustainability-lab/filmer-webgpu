@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-07-29T04:36:00Z",
+  "browser": "Chromium in-app browser",
+  "build": "local production preview",
+  "provider": "UCAR GDEX d084001",
+  "cycle": "2024-05-11T00:00:00Z",
+  "horizonHours": 3,
+  "inputs": [
+    "2024-05-10 18Z f003",
+    "2024-05-11 00Z f000"
+  ],
+  "downloadedMegabytes": 35.7,
+  "endToEndSeconds": 68.2,
+  "modelComputeMilliseconds": 919.6,
+  "runtime": "WASM fp32",
+  "outputs": 1,
+  "status": "success",
+  "notes": [
+    "UCAR byte-range reads were serialized in accordance with the GDEX download-script warning.",
+    "End-to-end time includes same-origin model load/compile, two UCAR GFS frames, decode, crop, normalization, and one model call.",
+    "The live archive result has no time-matched WRF target and remains verification pending."
+  ]
+}

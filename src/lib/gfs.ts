@@ -41,6 +41,8 @@ export const GFS_CHANNELS = [
   { name: "Q_500", variable: "SPFH", level: "500 mb" },
 ] as const;
 
+export type GfsProvider = "noaa" | "ucar";
+
 type IndexRecord = {
   record: number;
   offset: number;
@@ -84,10 +86,36 @@ export function gfsObjectName(cycle: Date, forecastHour: number) {
   )}`;
 }
 
-function publicObjectUrl(object: string) {
+export function noaaObjectUrl(object: string) {
   return `https://storage.googleapis.com/download/storage/v1/b/${GCS_BUCKET}/o/${encodeURIComponent(
     object,
   )}?alt=media`;
+}
+
+export function ucarObjectUrl(cycle: Date, forecastHour: number) {
+  const { date, hour } = cycleParts(cycle);
+  return `https://data.gdex.ucar.edu/d084001/${date.slice(0, 4)}/${date}/gfs.0p25.${date}${hour}.f${pad(
+    forecastHour,
+    3,
+  )}.grib2`;
+}
+
+export function gfsSourceUrls(
+  cycle: Date,
+  forecastHour: number,
+  provider: GfsProvider,
+) {
+  const object = gfsObjectName(cycle, forecastHour);
+  return {
+    // UCAR GDEX does not publish a record-index sidecar. The matching NOAA
+    // index locates records in the same NCEP product; a committed audit guards
+    // this assumption for a training-era pair.
+    index: noaaObjectUrl(`${object}.idx`),
+    data:
+      provider === "ucar"
+        ? ucarObjectUrl(cycle, forecastHour)
+        : noaaObjectUrl(object),
+  };
 }
 
 export function parseGfsIndex(text: string): IndexRecord[] {
@@ -178,7 +206,7 @@ async function fetchRange(
   });
   if (!response.ok || (response.status !== 206 && response.status !== 200)) {
     throw new Error(
-      `GFS byte-range request failed (${response.status}) for ${record.variable}:${record.level}`,
+      `GFS byte-range request to ${new URL(url).hostname} failed (${response.status}) for ${record.variable}:${record.level}`,
     );
   }
   return response.arrayBuffer();
@@ -188,10 +216,11 @@ export async function fetchGfsFrame(
   cycle: Date,
   forecastHour: number,
   onProgress: (progress: GfsProgress) => void,
+  provider: GfsProvider = "noaa",
 ): Promise<Float32Array> {
-  const object = gfsObjectName(cycle, forecastHour);
-  const frame = `${cycle.toISOString().slice(0, 13)}Z +${forecastHour}h`;
-  const indexResponse = await fetch(publicObjectUrl(`${object}.idx`), {
+  const urls = gfsSourceUrls(cycle, forecastHour, provider);
+  const frame = `${provider.toUpperCase()} · ${cycle.toISOString().slice(0, 13)}Z +${forecastHour}h`;
+  const indexResponse = await fetch(urls.index, {
     cache: "no-cache",
   });
   if (!indexResponse.ok) {
@@ -218,12 +247,13 @@ export async function fetchGfsFrame(
   let completedFields = 0;
   let loadedBytes = 0;
 
-  // Four concurrent record reads keep bandwidth busy without holding all
-  // twenty global decoded fields in memory at once.
-  for (let start = 0; start < records.length; start += 4) {
-    const batch = records.slice(start, start + 4);
+  // NOAA handles four concurrent ranges. GDEX explicitly warns against
+  // simultaneous downloads, so UCAR archive reads are serialized.
+  const batchSize = provider === "ucar" ? 1 : 4;
+  for (let start = 0; start < records.length; start += batchSize) {
+    const batch = records.slice(start, start + batchSize);
     const buffers = await Promise.all(
-      batch.map((record) => fetchRange(publicObjectUrl(object), record)),
+      batch.map((record) => fetchRange(urls.data, record)),
     );
     loadedBytes += buffers.reduce((sum, buffer) => sum + buffer.byteLength, 0);
     onProgress({

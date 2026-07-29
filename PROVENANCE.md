@@ -76,3 +76,18 @@ tensor rather than an approximation.
 NOAA GFS data are public and are fetched at runtime from the
 `global-forecast-system` public Google Cloud bucket. The app records no claim
 of NOAA endorsement.
+
+The training workflow’s UCAR GDEX dataset and variable-specific paper plotting
+source were supplied by Balbir Prasad in the Sustainability Lab `#emulator`
+thread on 29 July 2026. The plotting source assigns T2/PSFC to `viridis`,
+U10/V10 to `coolwarm`, Q2 to `YlGnBu`, and precipitation to `Blues`; it renders
+all rasters with `origin="lower"` and converts PSFC from Pa to hPa. The browser
+now preserves those display semantics and derives wind speed/RH2 with the
+script’s equations rather than presenting them as direct model outputs.
+
+UCAR dataset `d084001` exposes the same NCEP GFS 0.25-degree products but no
+`.idx` sidecar. The committed audit uses the NOAA index to request identical
+byte ranges from both providers for 2024-05-11 00Z `f000` and `f003`. All 40
+FiLMeR records (37,535,367 bytes) have matching SHA-256 values. This rules out
+a provider-induced shift for the audited pair only; it does not establish
+temporal distribution stability or forecast skill.

@@ -1,8 +1,8 @@
 # Operational data pipeline
 
-## Data source
+## Data sources
 
-Operational GFS data comes from NOAA’s public `global-forecast-system` Google
+Operational GFS data defaults to NOAA’s public `global-forecast-system` Google
 Cloud Storage bucket. The browser uses the JSON media endpoint because it
 returns CORS headers and supports HTTP byte ranges:
 
@@ -20,6 +20,21 @@ gfs.YYYYMMDD/HH/atmos/gfs.tHHz.pgrb2.0p25.fFFF.idx
 The index is parsed first. The browser selects the 20 records below, requests
 their exact byte ranges, decodes GRIB2 in JavaScript, and discards all points
 outside the training crop.
+
+The UI also exposes UCAR GDEX dataset `d084001`, used by the training download
+workflow:
+
+```text
+https://data.gdex.ucar.edu/d084001/YYYY/YYYYMMDD/gfs.0p25.YYYYMMDDHH.fFFF.grib2
+```
+
+UCAR supports CORS and byte ranges but does not publish a `.idx` sidecar. For
+UCAR mode, the browser reads the matching NOAA index to locate records, then
+requests the GRIB bytes from UCAR. A byte-level audit of the 2024-05-11 00Z
+`f000/f003` pair found all 40 selected records identical across providers. The
+app still treats NOAA as the operational default because UCAR is an archive and
+may lag recent cycles. UCAR record ranges are read serially to follow GDEX’s
+published warning against simultaneous downloads; NOAA reads four at a time.
 
 ## Checkpoint channel order
 

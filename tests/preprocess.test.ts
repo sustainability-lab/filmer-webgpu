@@ -11,8 +11,10 @@ import {
 import {
   cropGlobalField,
   gfsObjectName,
+  gfsSourceUrls,
   parseGfsIndex,
   selectGfsChannels,
+  ucarObjectUrl,
 } from "../src/lib/gfs";
 
 describe("FiLMeR preprocessing", () => {
@@ -129,6 +131,19 @@ describe("operational GFS acquisition", () => {
     expect(gfsObjectName(new Date("2026-07-24T06:00:00Z"), 93)).toBe(
       "gfs.20260724/06/atmos/gfs.t06z.pgrb2.0p25.f093",
     );
+  });
+
+  it("maps a cycle to the UCAR training-source archive", () => {
+    const cycle = new Date("2024-05-11T00:00:00Z");
+    expect(ucarObjectUrl(cycle, 3)).toBe(
+      "https://data.gdex.ucar.edu/d084001/2024/20240511/gfs.0p25.2024051100.f003.grib2",
+    );
+    const urls = gfsSourceUrls(cycle, 3, "ucar");
+    expect(urls.data).toBe(ucarObjectUrl(cycle, 3));
+    expect(urls.index).toContain(
+      "global-forecast-system/o/gfs.20240511%2F00%2Fatmos%2F",
+    );
+    expect(urls.index).toContain(".idx");
   });
 
   it("rejects forecast leads outside the published 3-hour sequence", () => {
