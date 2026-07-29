@@ -150,10 +150,24 @@ export default function App() {
   const selectedVariable = VARIABLE_VISUALS[variableIndex];
   const busy = runtimeState === "loading" || runtimeState === "running";
   const activeFrame = frames[activeFrameIndex] ?? null;
-  const displayValues = useMemo(
-    () => (activeFrame ? deriveDisplayFields(activeFrame.physical) : null),
-    [activeFrame],
+  const displayFrames = useMemo(
+    () => frames.map((frame) => deriveDisplayFields(frame.physical)),
+    [frames],
   );
+  const displayValues = useMemo(
+    () => displayFrames[activeFrameIndex] ?? null,
+    [activeFrameIndex, displayFrames],
+  );
+  const displayScaleValues = useMemo(() => {
+    if (displayFrames.length < 2) return null;
+    const values = new Float32Array(
+      displayFrames.length * displayFrames[0].length,
+    );
+    displayFrames.forEach((frame, index) => {
+      values.set(frame, index * frame.length);
+    });
+    return values;
+  }, [displayFrames]);
 
   useEffect(() => {
     loadModelManifest()
@@ -481,7 +495,7 @@ export default function App() {
               type="button"
             >
               <Play aria-hidden="true" size={14} weight="fill" />
-              Watch the 40-second walkthrough
+              Watch the 50-second walkthrough
             </button>
           </div>
 
@@ -649,6 +663,7 @@ export default function App() {
 
           <ForecastMap
             domainId={domainId}
+            scaleValues={displayScaleValues}
             unit={selectedVariable.displayUnit}
             values={displayValues}
             variableIndex={variableIndex}
@@ -773,6 +788,13 @@ export default function App() {
               <source
                 src={`${import.meta.env.BASE_URL}walkthrough/filmer-web-walkthrough.mp4`}
                 type="video/mp4"
+              />
+              <track
+                default
+                kind="captions"
+                label="English"
+                src={`${import.meta.env.BASE_URL}walkthrough/filmer-web-walkthrough.vtt`}
+                srcLang="en"
               />
               Your browser cannot play the walkthrough video.
             </video>

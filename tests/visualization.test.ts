@@ -65,6 +65,21 @@ describe("paper-aligned meteorological rendering", () => {
     expect(raster.high).toBe(270);
   });
 
+  it("keeps one scale across a sequence of forecast frames", () => {
+    const first = new Float32Array(8 * OUTPUT_CELLS);
+    const second = new Float32Array(8 * OUTPUT_CELLS);
+    first.fill(1, 0, OUTPUT_CELLS);
+    second.fill(9, 0, OUTPUT_CELLS);
+    const sequence = new Float32Array(first.length + second.length);
+    sequence.set(first);
+    sequence.set(second, first.length);
+
+    const raster = createRasterPixels(first, 0, "field", sequence);
+
+    expect(raster.low).toBe(1);
+    expect(raster.high).toBe(9);
+  });
+
   it("derives paper wind-speed and RH2 fields without changing model outputs", () => {
     const physical = new Float32Array(6 * OUTPUT_CELLS);
     physical.fill(300, 0, OUTPUT_CELLS);

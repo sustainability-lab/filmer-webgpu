@@ -246,9 +246,21 @@ export function createRasterPixels(
   const scaleRaw =
     mode === "field" && scaleValues
       ? Array.from(
-          scaleValues.slice(offset, offset + OUTPUT_CELLS),
-          (value) => value * visual.displayFactor,
-        )
+          {
+            length: Math.max(
+              1,
+              Math.floor(scaleValues.length / values.length),
+            ),
+          },
+          (_, frameIndex) =>
+            Array.from(
+              scaleValues.slice(
+                frameIndex * values.length + offset,
+                frameIndex * values.length + offset + OUTPUT_CELLS,
+              ),
+              (value) => value * visual.displayFactor,
+            ),
+        ).flat()
       : raw;
   const sorted = [...scaleRaw].sort((left, right) => left - right);
   let low: number;

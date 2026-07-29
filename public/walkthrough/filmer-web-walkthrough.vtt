@@ -1,0 +1,19 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:06.700
+FiLMeR turns a current GFS forecast into a high-resolution regional field, entirely in your browser.
+
+00:00:06.700 --> 00:00:15.500
+Choose one of four trained domains, select temperature, wind, humidity, pressure, or precipitation, and request up to eight three-hour timestamps.
+
+00:00:15.500 --> 00:00:23.800
+The app downloads the live GFS tensors, verifies them, builds the model input, and runs ONNX inference locally.
+
+00:00:23.800 --> 00:00:32.800
+The result is a pan-and-zoom map with one fixed color scale across every frame, so colors remain comparable as the animation advances.
+
+00:00:32.800 --> 00:00:43.500
+The web version uses ONNX Runtime Web, while the iPhone and Android apps use native ONNX Runtime. Forecast fields stay on your device.
+
+00:00:43.500 --> 00:00:49.600
+FiLMeR is a research emulator, not an operational warning service.

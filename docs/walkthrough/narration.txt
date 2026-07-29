@@ -1,0 +1,11 @@
+FiLMeR turns a current GFS forecast into a high-resolution regional field, entirely in your browser.
+
+Choose one of four trained domains, select temperature, wind, humidity, pressure, or precipitation, and request up to eight three-hour timestamps.
+
+The app downloads the live GFS tensors, verifies them, builds the model input, and runs ONNX inference locally.
+
+The result is a pan-and-zoom map with one fixed color scale across every frame, so colors remain comparable as the animation advances.
+
+The web version uses ONNX Runtime Web, while the iPhone and Android apps use native ONNX Runtime. Forecast fields stay on your device.
+
+FiLMeR is a research emulator, not an operational warning service.

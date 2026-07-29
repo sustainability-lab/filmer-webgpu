@@ -35,6 +35,18 @@ const SURVEY_OF_INDIA_SOURCE =
 const VIEW_WIDTH = 720;
 const VIEW_HEIGHT = 560;
 
+export function constrainMapView(view: ViewTransform): ViewTransform {
+  const scale = Math.max(1, Math.min(8, view.scale));
+  if (scale === 1) return { scale, x: 0, y: 0 };
+  const maxX = (VIEW_WIDTH * (scale - 1)) / 2;
+  const maxY = (VIEW_HEIGHT * (scale - 1)) / 2;
+  return {
+    scale,
+    x: Math.max(-maxX, Math.min(maxX, view.x)),
+    y: Math.max(-maxY, Math.min(maxY, view.y)),
+  };
+}
+
 function d3CompatibleWinding(
   feature: Feature<Geometry>,
 ): Feature<Geometry> {
@@ -180,11 +192,11 @@ export function ForecastMap({
       const scale = Math.max(1, Math.min(8, nextScale));
       const worldX = (pointX - current.x) / current.scale;
       const worldY = (pointY - current.y) / current.scale;
-      return {
+      return constrainMapView({
         scale,
         x: pointX - worldX * scale,
         y: pointY - worldY * scale,
-      };
+      });
     });
   }
 
@@ -212,15 +224,17 @@ export function ForecastMap({
   function onPointerMove(event: ReactPointerEvent<SVGSVGElement>) {
     if (!drag.current || drag.current.pointerId !== event.pointerId) return;
     const bounds = event.currentTarget.getBoundingClientRect();
-    setView((current) => ({
-      ...current,
-      x:
-        drag.current!.originX +
-        ((event.clientX - drag.current!.clientX) / bounds.width) * VIEW_WIDTH,
-      y:
-        drag.current!.originY +
-        ((event.clientY - drag.current!.clientY) / bounds.height) * VIEW_HEIGHT,
-    }));
+    setView((current) =>
+      constrainMapView({
+        ...current,
+        x:
+          drag.current!.originX +
+          ((event.clientX - drag.current!.clientX) / bounds.width) * VIEW_WIDTH,
+        y:
+          drag.current!.originY +
+          ((event.clientY - drag.current!.clientY) / bounds.height) * VIEW_HEIGHT,
+      }),
+    );
   }
 
   function onPointerUp(event: ReactPointerEvent<SVGSVGElement>) {

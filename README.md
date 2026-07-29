@@ -11,7 +11,8 @@ benchmarks remain available for research, but are not exposed as a user choice.
 
 - Presents one three-step workflow: select a trained domain, select a variable,
   then **Download data & run**.
-- Includes a captioned 40-second first-run walkthrough in the app; methodology,
+- Includes a captioned 50-second first-run walkthrough recorded from the actual
+  production app, with verified Gemini Indian-male narration; methodology,
   numerical validation, and limitations remain on a separate
   **Method & validation** page so the forecast workflow stays uncluttered.
 - Automatically chooses a recent completed NOAA GFS cycle, downloads the model
@@ -248,11 +249,17 @@ Production build:
 npm run build
 ```
 
-Regenerate the captioned walkthrough and poster with:
+Record a real production run, then regenerate the captioned walkthrough and
+poster with:
 
 ```bash
+npm run record:walkthrough
+cp /tmp/filmer-actual-app-capture.mp4 docs/walkthrough/actual-app-capture.mp4
 npm run build:walkthrough
 ```
+
+The assembler accelerates only the real NOAA download/inference wait. It does
+not replace the interface or results with simulated content.
 
 The app is static; GitHub Pages deployment is in
 `.github/workflows/pages.yml`. The tagged release retains the original ONNX
