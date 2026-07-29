@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="FiLMeR v1.0 method, validated scope, numerical parity, and operational limitations."
+    />
+    <title>FiLMeR · Method & validation</title>
+    <style>
+      :root {
+        color: #18342d;
+        background: #f2f5f2;
+        font: 16px/1.6 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; }
+      a { color: #08695b; }
+      header, main, footer { width: min(980px, calc(100% - 32px)); margin-inline: auto; }
+      header { display: flex; align-items: center; justify-content: space-between; padding: 26px 0; }
+      .brand { color: #18342d; font-size: 1.1rem; font-weight: 800; text-decoration: none; }
+      .back { font-size: .84rem; font-weight: 700; text-decoration: none; }
+      main { padding-bottom: 64px; }
+      .hero { padding: 62px clamp(22px, 6vw, 68px); border: 1px solid #dce4e0; border-radius: 22px; background: #fff; }
+      .eyebrow { margin: 0 0 12px; color: #087365; font-size: .72rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+      h1 { max-width: 720px; margin: 0; font-size: clamp(2.3rem, 6vw, 4.5rem); line-height: 1.02; letter-spacing: -.055em; }
+      .lede { max-width: 720px; margin: 24px 0 0; color: #5c6d68; font-size: 1.08rem; }
+      section { margin-top: 46px; }
+      h2 { margin: 0 0 16px; font-size: 1.55rem; letter-spacing: -.025em; }
+      h3 { margin: 0 0 8px; font-size: .95rem; }
+      p { margin: 0 0 14px; }
+      .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+      .card { padding: 22px; border: 1px solid #dce4e0; border-radius: 14px; background: #fff; }
+      .card p, .note, td { color: #5c6d68; font-size: .9rem; }
+      .flow { display: grid; grid-template-columns: repeat(5, auto); gap: 8px; align-items: center; }
+      .flow span { padding: 12px 14px; border-radius: 9px; background: #e4efeb; font-size: .82rem; font-weight: 750; text-align: center; }
+      .flow i { color: #81908b; font-style: normal; text-align: center; }
+      .table-wrap { overflow-x: auto; border: 1px solid #dce4e0; border-radius: 14px; background: #fff; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { padding: 13px 16px; border-bottom: 1px solid #e5ebe8; text-align: left; vertical-align: top; }
+      th { color: #385049; font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; }
+      tr:last-child td { border-bottom: 0; }
+      code { padding: 2px 5px; border-radius: 4px; background: #e7ecea; font-size: .8em; overflow-wrap: anywhere; }
+      .callout { padding: 22px 24px; border-left: 4px solid #087365; border-radius: 0 12px 12px 0; background: #e4efeb; }
+      .callout strong { display: block; margin-bottom: 4px; }
+      .small { color: #6c7c77; font-size: .8rem; }
+      footer { padding: 28px 0 50px; color: #788681; font-size: .75rem; }
+      @media (max-width: 740px) {
+        .cards { grid-template-columns: 1fr; }
+        .flow { grid-template-columns: 1fr; }
+        .flow i { transform: rotate(90deg); }
+        header { padding: 20px 0; }
+        .hero { padding-block: 42px; }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="./">FiLMeR Forecast</a>
+      <a class="back" href="./">← Run forecast</a>
+    </header>
+    <main>
+      <article class="hero">
+        <p class="eyebrow">Method &amp; validation</p>
+        <h1>What FiLMeR does—and what it does not.</h1>
+        <p class="lede">
+          FiLMeR v1.0 is a conditional regional emulator. It converts a pair of
+          GFS atmospheric states plus static geography into six 2-D regional
+          surface fields. It is not a complete GFS or WRF replacement.
+        </p>
+      </article>
+
+      <section>
+        <h2>One forecast step</h2>
+        <div class="flow" aria-label="FiLMeR processing flow">
+          <span>GFS at t−3 h and t</span><i>→</i>
+          <span>Exact crop + normalization</span><i>→</i>
+          <span>FiLMeR at t+3 h</span>
+        </div>
+        <p class="note">
+          Longer products repeat this independent conditional step using the
+          corresponding GFS sequence. FiLMeR outputs are never fed back into the model.
+        </p>
+      </section>
+
+      <section>
+        <h2>Validated scope</h2>
+        <div class="cards">
+          <article class="card">
+            <h3>Geography</h3>
+            <p>Only the four trained domains: India at 27 km and three trained regional domains at 9 km.</p>
+          </article>
+          <article class="card">
+            <h3>Time</h3>
+            <p>3-hour cadence, with 1, 2, 4 or 8 timestamps in this public interface.</p>
+          </article>
+          <article class="card">
+            <h3>Output</h3>
+            <p>Fixed 99 × 99 grids for T2, U10, V10, Q2, surface pressure and precipitation.</p>
+          </article>
+        </div>
+      </section>
+
+      <section>
+        <h2>Answers to operational questions</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Question</th><th>Evidence-backed answer</th></tr></thead>
+            <tbody>
+              <tr><td>Arbitrary location?</td><td>No. Architecture-level conditioning does not validate unseen geography.</td></tr>
+              <tr><td>Arbitrary resolution?</td><td>No. The shared model was trained at 27 km and 9 km; 1 km requires suitable training data and held-out validation.</td></tr>
+              <tr><td>Hourly or 96-hour standalone?</td><td>No. Current cadence is 3 hours and every output remains conditioned on GFS.</td></tr>
+              <tr><td>Full 3-D atmospheric state?</td><td>No. FiLMeR v1.0 emits six 2-D surface fields, not pressure-level or native-model-level fields.</td></tr>
+              <tr><td>Operational?</td><td>Research prototype. Do not use it as safety-critical weather guidance.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section>
+        <h2>Numerical validation</h2>
+        <div class="cards">
+          <article class="card">
+            <h3>Exact model artifact</h3>
+            <p>FP32 ONNX: 159,065,799 bytes.</p>
+            <p class="small"><code>19abe68725be837f912b832dc9d3748982fc03f644bc334ce4b96e63e628cdbc</code></p>
+          </article>
+          <article class="card">
+            <h3>Python → ONNX parity</h3>
+            <p>Maximum raw-output absolute error: 6.23703×10⁻⁴. Wet-mask disagreements: 0 / 9,801.</p>
+          </article>
+          <article class="card">
+            <h3>Held-out WRF case</h3>
+            <p>T2 RMSE 1.61 K; precipitation RMSE 1.23 mm. This is one WRF reference case—not aggregate skill or observations.</p>
+          </article>
+        </div>
+      </section>
+
+      <section>
+        <h2>Timing boundary</h2>
+        <div class="callout">
+          <strong>The browser’s wait is primarily data movement.</strong>
+          A measured one-timestamp run took 43.5 s end to end: about 41.2 s for
+          current GFS data and 0.92 s for model inference on the tested machine.
+          This is not directly comparable to a WRF end-to-end benchmark unless
+          acquisition, preprocessing, variables, levels and outputs are aligned.
+        </div>
+      </section>
+
+      <section>
+        <h2>Reproducibility</h2>
+        <p>
+          Source, conversion scripts, exact preprocessing, checksums, test
+          fixtures, reports and CI are public in
+          <a href="https://github.com/sustainability-lab/filmer-webgpu">the FiLMeR WebGPU repository</a>.
+        </p>
+      </section>
+    </main>
+    <footer>FiLMeR v1.0 · Sustainability Lab · research prototype</footer>
+  </body>
+</html>

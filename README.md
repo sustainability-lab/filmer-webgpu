@@ -11,6 +11,9 @@ benchmarks remain available for research, but are not exposed as a user choice.
 
 - Presents one three-step workflow: select a trained domain, select a variable,
   then **Download data & run**.
+- Includes a captioned 40-second first-run walkthrough in the app; methodology,
+  numerical validation, and limitations remain on a separate
+  **Method & validation** page so the forecast workflow stays uncluttered.
 - Automatically chooses a recent completed NOAA GFS cycle, downloads the model
   and required weather fields, and runs the 39,768,627-parameter checkpoint
   entirely in the browser.
@@ -88,6 +91,24 @@ still global fields, so a 96-hour run can transfer hundreds of MB. A production
 regional-subset proxy would reduce this substantially.
 
 See [DATA_PIPELINE.md](docs/DATA_PIPELINE.md) for exact acquisition semantics.
+
+### Compact native-app feed
+
+The scheduled `mobile-inputs.yml` workflow performs the GRIB selection and
+decoding once, then replaces two stable assets in the `mobile-inputs` release:
+
+- `latest.json`: GFS initialization, exact frame/output times, tensor shape,
+  byte length, and SHA-256.
+- `gfs.f32`: nine frames × 20 predictors × 127 × 137 cells, little-endian
+  float32 (12,527,280 bytes for eight three-hour output steps).
+
+The native Android and iPhone clients bundle the checksum-pinned model and
+static geography, so a live 24-hour run downloads only this roughly 12 MiB
+weather package. Regenerate a package locally with:
+
+```bash
+npm run build:mobile-inputs -- --output mobile-inputs
+```
 
 ## Validated scope and limitations
 
@@ -225,6 +246,12 @@ Production build:
 
 ```bash
 npm run build
+```
+
+Regenerate the captioned walkthrough and poster with:
+
+```bash
+npm run build:walkthrough
 ```
 
 The app is static; GitHub Pages deployment is in

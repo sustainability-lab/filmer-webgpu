@@ -5,6 +5,7 @@ import {
   Play,
   SkipBack,
   SkipForward,
+  X,
 } from "@phosphor-icons/react";
 import { strToU8, zipSync } from "fflate";
 import { ForecastMap } from "./components/ForecastMap";
@@ -136,6 +137,7 @@ export default function App() {
   const [cycleUsed, setCycleUsed] = useState<Date | null>(null);
   const [downloadedBytes, setDownloadedBytes] = useState(0);
   const [timings, setTimings] = useState<RunTimings | null>(null);
+  const [walkthroughOpen, setWalkthroughOpen] = useState(false);
   const [outputGrid, setOutputGrid] = useState<{
     latitude: Float32Array;
     longitude: Float32Array;
@@ -189,6 +191,15 @@ export default function App() {
     }, 1100);
     return () => window.clearInterval(timer);
   }, [isPlaying, frames.length]);
+
+  useEffect(() => {
+    if (!walkthroughOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setWalkthroughOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [walkthroughOpen]);
 
   function selectDomain(id: number) {
     setDomainId(id);
@@ -464,6 +475,14 @@ export default function App() {
               Choose a trained domain and variable. FiLMeR downloads what it
               needs and runs locally in this browser.
             </p>
+            <button
+              className="walkthrough-link"
+              onClick={() => setWalkthroughOpen(true)}
+              type="button"
+            >
+              <Play aria-hidden="true" size={14} weight="fill" />
+              Watch the 40-second walkthrough
+            </button>
           </div>
 
           <section className="step">
@@ -700,8 +719,84 @@ export default function App() {
       </div>
 
       <footer>
-        FiLMeR v1.0 · conditional GFS downscaling · research prototype
+        <span>FiLMeR v1.0 · conditional GFS downscaling · research prototype</span>
+        <span className="footer-links">
+          <a
+            href={`${import.meta.env.BASE_URL}method.html`}
+            rel="noreferrer"
+            target="_blank"
+          >
+            Method &amp; validation
+          </a>
+          <a
+            href="https://github.com/sustainability-lab/filmer-webgpu"
+            rel="noreferrer"
+            target="_blank"
+          >
+            Source
+          </a>
+        </span>
       </footer>
+
+      {walkthroughOpen ? (
+        <div
+          aria-label="How to run FiLMeR"
+          aria-modal="true"
+          className="walkthrough-backdrop"
+          onMouseDown={(event) => {
+            if (event.currentTarget === event.target) {
+              setWalkthroughOpen(false);
+            }
+          }}
+          role="dialog"
+        >
+          <section className="walkthrough-dialog">
+            <div className="walkthrough-heading">
+              <div>
+                <p className="eyebrow">First run</p>
+                <h2>Forecast in three steps.</h2>
+              </div>
+              <button
+                aria-label="Close walkthrough"
+                onClick={() => setWalkthroughOpen(false)}
+                type="button"
+              >
+                <X aria-hidden="true" size={18} weight="bold" />
+              </button>
+            </div>
+            <video
+              controls
+              playsInline
+              poster={`${import.meta.env.BASE_URL}walkthrough/filmer-web-walkthrough-poster.jpg`}
+              preload="metadata"
+            >
+              <source
+                src={`${import.meta.env.BASE_URL}walkthrough/filmer-web-walkthrough.mp4`}
+                type="video/mp4"
+              />
+              Your browser cannot play the walkthrough video.
+            </video>
+            <ol className="walkthrough-steps">
+              <li>
+                <strong>Choose a trained domain.</strong>
+                <span>Use 27 km India or a trained 9 km regional domain.</span>
+              </li>
+              <li>
+                <strong>Pick a field and timestamps.</strong>
+                <span>Each forecast timestamp is three hours apart.</span>
+              </li>
+              <li>
+                <strong>Download data &amp; run.</strong>
+                <span>Keep the tab open; the map appears when inference finishes.</span>
+              </li>
+            </ol>
+            <p className="walkthrough-note">
+              The model runs entirely in this browser. Most waiting time is the
+              download and decoding of current GFS weather data.
+            </p>
+          </section>
+        </div>
+      ) : null}
     </main>
   );
 }

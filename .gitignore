@@ -11,3 +11,4 @@ __pycache__/
 *.tsbuildinfo
 vite.config.js
 vite.config.d.ts
+docs/walkthrough/frames/

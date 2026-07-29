@@ -1,0 +1,42 @@
+name: Publish compact mobile inputs
+
+on:
+  schedule:
+    - cron: "45 0,6,12,18 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mobile-inputs
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: node scripts/build_mobile_inputs.mjs --output mobile-inputs
+
+      - name: Create stable release if needed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view mobile-inputs >/dev/null 2>&1 ||
+            gh release create mobile-inputs \
+              --title "Latest compact FiLMeR mobile inputs" \
+              --notes "Automatically refreshed compact GFS predictor tensors for the native FiLMeR clients."
+
+      - name: Replace release assets atomically
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload mobile-inputs mobile-inputs/gfs.f32 mobile-inputs/latest.json --clobber
